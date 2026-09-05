@@ -1,0 +1,35 @@
+{
+  "updatedAt": "2026-09-05T23:57:15.858Z",
+  "source": {
+    "recent": "https://www.ponsfamily.com/api/pons-launches?limit=100",
+    "historical": "https://www.ponsfamily.com/api/pons-launches",
+    "rpc": "https://rpc.mainnet.chain.robinhood.com"
+  },
+  "counts": {
+    "launches": 500,
+    "recentFetched": 100,
+    "historicalFetched": 2156,
+    "byQuoteClass": {
+      "eth": 500,
+      "usdg": 0,
+      "stocks": 0,
+      "btc": 0,
+      "unknown": 0
+    },
+    "stockQuoted": 0,
+    "usdgQuoted": 0
+  },
+  "rpc": {
+    "ok": true,
+    "chainId": 4663,
+    "blockNumber": 55530608,
+    "factories": [
+      "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
+      "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+      "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75"
+    ],
+    "note": "RPC reachable. Quote class comes from pairToken registry; eth_getLogs enrichment optional."
+  },
+  "errors": [],
+  "disclaimer": "StockCurve is an independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice."
+}

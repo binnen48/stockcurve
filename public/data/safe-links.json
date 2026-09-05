@@ -1,0 +1,26 @@
+{
+  "updatedAt": "2026-09-05T23:57:15.858Z",
+  "warning": "Only use the official links below. Lookalike domains, fake apps, and “support” DMs are common phishing vectors for Pons / Robinhood Chain / FOMO traders.",
+  "links": [
+    {
+      "name": "Pons Family",
+      "url": "https://www.ponsfamily.com/",
+      "blurb": "Official Pons launchpad on Robinhood Chain."
+    },
+    {
+      "name": "Robinhood Chain",
+      "url": "https://robinhood.com/us/en/chain/",
+      "blurb": "Official Robinhood Chain hub."
+    },
+    {
+      "name": "Robinhood Chain Explorer",
+      "url": "https://robinhoodchain.blockscout.com/",
+      "blurb": "Official Blockscout explorer for chain ID 4663."
+    },
+    {
+      "name": "FOMO (App Store)",
+      "url": "https://apps.apple.com/us/app/fomo-never-miss-out/id6741115427",
+      "blurb": "Official FOMO iOS app — Never Miss Out."
+    }
+  ]
+}
