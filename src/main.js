@@ -1,6 +1,8 @@
 const DATA_BASE = `${import.meta.env.BASE_URL}feed`;
 const REFRESH_MS = 90_000;
 const LIVE_POLL_MS = 18_000;
+const MAX_LAUNCHES = 750;
+const LIVE_FAIL_TOAST_AFTER = 3;
 const LS_WATCH = 'stockcurve.watchlist';
 const LS_VISIT = 'stockcurve.lastVisit';
 const LS_LIVE = 'stockcurve.live';
@@ -82,6 +84,8 @@ const S = {
   scanning: 'scanning',
   lastEvent: 'last event',
   liveOff: 'Feed only',
+  liveRpcFail: 'Live RPC failing — retrying with backoff. Feed refresh still works.',
+  toastDismiss: 'Dismiss',
 };
 
 const state = {
@@ -102,11 +106,12 @@ const state = {
   clientFetchedAt: null,
   pulse: false,
   live: localStorage.getItem(LS_LIVE) !== '0',
-  liveStatus: { block: null, lastEventAt: null, lastError: null, scanning: false },
+  liveStatus: { block: null, lastEventAt: null, lastError: null, scanning: false, failCount: 0 },
   notifyStocks: localStorage.getItem(LS_NOTIFY) === '1',
   hashHadFilter: false,
   defaultedStocks: false,
   liveFlash: new Set(),
+  toast: null,
 };
 
 let refreshTimer = null;
@@ -116,6 +121,11 @@ let searchFocusRestore = null;
 let liveBackoffUntil = 0;
 let liveFromBlock = null;
 let knownTokensAtBoot = new Set();
+let feedAbort = null;
+let feedReqId = 0;
+let livePollId = 0;
+let toastTimer = null;
+const liveFlashTimers = new Map();
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const t = (key) => S[key] ?? key;
@@ -173,6 +183,61 @@ function esc(s) {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+function capLaunches(list) {
+  if (!Array.isArray(list) || list.length <= MAX_LAUNCHES) return list || [];
+  return list
+    .slice()
+    .sort((a, b) => (Date.parse(b.launchedAt) || 0) - (Date.parse(a.launchedAt) || 0))
+    .slice(0, MAX_LAUNCHES);
+}
+
+function showToast(message, { ms = 8000 } = {}) {
+  state.toast = { message: String(message || ''), at: Date.now() };
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    state.toast = null;
+    const el = document.getElementById('sc-toast');
+    if (el) el.remove();
+  }, ms);
+  renderToast();
+}
+
+function dismissToast() {
+  state.toast = null;
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  const el = document.getElementById('sc-toast');
+  if (el) el.remove();
+}
+
+function renderToast() {
+  let el = document.getElementById('sc-toast');
+  if (!state.toast) {
+    if (el) el.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sc-toast';
+    el.className = 'sc-toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<span>${esc(state.toast.message)}</span><button type="button" class="sc-toast-x" aria-label="${esc(t('toastDismiss'))}">×</button>`;
+  el.querySelector('.sc-toast-x')?.addEventListener('click', dismissToast);
+}
+
+function markLiveFlash(key) {
+  if (!key) return;
+  state.liveFlash.add(key);
+  const prev = liveFlashTimers.get(key);
+  if (prev) clearTimeout(prev);
+  const tid = setTimeout(() => {
+    state.liveFlash.delete(key);
+    liveFlashTimers.delete(key);
+  }, 12000);
+  liveFlashTimers.set(key, tid);
 }
 
 function shortAddr(a) {
@@ -280,7 +345,13 @@ function filtered() {
       return gb - ga;
     });
   } else {
-    rows.sort((a, b) => (Date.parse(b.launchedAt) || 0) - (Date.parse(a.launchedAt) || 0));
+    rows.sort((a, b) => {
+      const tb = Date.parse(b.launchedAt);
+      const ta = Date.parse(a.launchedAt);
+      const nb = Number.isFinite(tb) ? tb : 0;
+      const na = Number.isFinite(ta) ? ta : 0;
+      return nb - na;
+    });
   }
   return rows;
 }
@@ -438,10 +509,13 @@ function liveStatusLabel() {
   const b = state.liveStatus.block;
   const last = state.liveStatus.lastEventAt;
   const parts = [t('live')];
-  if (b != null) parts.push(`block #${b}`);
+  if (document.hidden) parts.push('paused');
+  else if (b != null) parts.push(`block #${b}`);
   else if (state.liveStatus.scanning) parts.push(t('scanning'));
   if (last) parts.push(`${t('lastEvent')} ${relative(last)}`);
-  else if (state.liveStatus.lastError) parts.push('retrying');
+  else if (state.liveStatus.lastError) {
+    parts.push(state.liveStatus.failCount >= LIVE_FAIL_TOAST_AFTER ? 'RPC errors' : 'retrying');
+  }
   return parts.join(' · ');
 }
 
@@ -943,10 +1017,7 @@ function mergeLaunches(incoming, { flash = false, notify = false } = {}) {
     if (!prev) {
       map.set(key, row);
       added += 1;
-      if (flash) {
-        state.liveFlash.add(key);
-        setTimeout(() => { state.liveFlash.delete(key); }, 12000);
-      }
+      if (flash) markLiveFlash(key);
       if (notify && row.quoteClass === 'stocks') stockNews.push(row);
     } else {
       map.set(key, {
@@ -957,10 +1028,11 @@ function mergeLaunches(incoming, { flash = false, notify = false } = {}) {
         launchedAt: row.launchedAt || prev.launchedAt,
         quoteClass: row.quoteClass !== 'unknown' ? row.quoteClass : prev.quoteClass,
         quoteSymbol: row.quoteSymbol !== 'UNK' ? row.quoteSymbol : prev.quoteSymbol,
+        _live: prev._live || row._live,
       });
     }
   }
-  state.launches = [...map.values()];
+  state.launches = capLaunches([...map.values()]);
   if (stockNews.length && state.notifyStocks && Notification?.permission === 'granted') {
     for (const L of stockNews.slice(0, 3)) {
       try {
@@ -974,6 +1046,25 @@ function mergeLaunches(incoming, { flash = false, notify = false } = {}) {
   return added;
 }
 
+/** Apply static feed without wiping newer Live-only discoveries. */
+function applyFeedLaunches(list) {
+  const feedRows = (list || []).map((x) => enrichLaunchRow(x));
+  const feedKeys = new Set(feedRows.map((x) => (x.token || '').toLowerCase()).filter(Boolean));
+  const liveOnly = state.launches.filter((x) => {
+    const k = (x.token || '').toLowerCase();
+    return k && x._live && !feedKeys.has(k);
+  });
+  const map = new Map(feedRows.map((x) => [(x.token || '').toLowerCase(), x]));
+  for (const L of liveOnly) {
+    const k = (L.token || '').toLowerCase();
+    if (!map.has(k)) map.set(k, L);
+  }
+  state.launches = capLaunches([...map.values()]);
+  knownTokensAtBoot = new Set(
+    [...feedKeys, ...liveOnly.map((x) => (x.token || '').toLowerCase())].filter(Boolean),
+  );
+}
+
 async function hydrateBlockTimestamp(blockNumber) {
   if (blockNumber == null) return null;
   try {
@@ -984,12 +1075,14 @@ async function hydrateBlockTimestamp(blockNumber) {
 }
 
 async function pollLiveOnce() {
-  if (!state.live) return;
+  if (!state.live || document.hidden) return;
   if (Date.now() < liveBackoffUntil) return;
+  const myId = ++livePollId;
   state.liveStatus.scanning = true;
   updateLivePill();
   try {
     const blockHex = await rpc('eth_blockNumber');
+    if (myId !== livePollId || !state.live) return;
     const latest = parseInt(blockHex, 16);
     state.liveStatus.block = latest;
     if (liveFromBlock == null) liveFromBlock = Math.max(0, latest - 8);
@@ -1004,6 +1097,7 @@ async function pollLiveOnce() {
 
     const decoded = [];
     for (const job of jobs) {
+      if (myId !== livePollId || !state.live) return;
       try {
         const logs = await rpc('eth_getLogs', [{
           address: job.address,
@@ -1022,6 +1116,8 @@ async function pollLiveOnce() {
       }
     }
 
+    if (myId !== livePollId || !state.live) return;
+
     const fresh = [];
     for (const ev of decoded) {
       const key = ev.token.toLowerCase();
@@ -1029,6 +1125,7 @@ async function pollLiveOnce() {
       if (exists && knownTokensAtBoot.has(key)) continue;
       let launchedAt = null;
       if (!exists) launchedAt = await hydrateBlockTimestamp(ev.blockNumber);
+      if (myId !== livePollId || !state.live) return;
       fresh.push({
         token: ev.token,
         name: 'Unknown',
@@ -1047,12 +1144,15 @@ async function pollLiveOnce() {
     }
 
     const added = mergeLaunches(fresh, { flash: true, notify: true });
+    if (myId !== livePollId || !state.live) return;
     liveFromBlock = latest;
     state.liveStatus.lastError = null;
+    state.liveStatus.failCount = 0;
 
     // Optional Pons HTTP (CORS may block)
     try {
       const res = await fetch(PONS_API_20, { cache: 'no-store' });
+      if (myId !== livePollId || !state.live) return;
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -1067,6 +1167,7 @@ async function pollLiveOnce() {
       /* CORS or network — silent */
     }
 
+    if (myId !== livePollId || !state.live) return;
     if (added > 0) {
       state.pulse = true;
       setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
@@ -1075,13 +1176,20 @@ async function pollLiveOnce() {
       updateLivePill();
     }
   } catch (e) {
+    if (myId !== livePollId) return;
     state.liveStatus.lastError = e.message || String(e);
+    state.liveStatus.failCount = (state.liveStatus.failCount || 0) + 1;
     if (e.code === 429 || /429/.test(String(e.message))) {
       liveBackoffUntil = Date.now() + 60_000;
+    } else {
+      liveBackoffUntil = Date.now() + 20_000;
+    }
+    if (state.liveStatus.failCount >= LIVE_FAIL_TOAST_AFTER) {
+      showToast(t('liveRpcFail'));
     }
     updateLivePill();
   } finally {
-    state.liveStatus.scanning = false;
+    if (myId === livePollId) state.liveStatus.scanning = false;
   }
 }
 
@@ -1096,20 +1204,22 @@ function updateLivePill() {
 
 function startLive() {
   stopLive();
-  if (!state.live) return;
+  if (!state.live || document.hidden) return;
   pollLiveOnce();
   liveTimer = setInterval(pollLiveOnce, LIVE_POLL_MS);
 }
 
 function stopLive() {
+  livePollId += 1; // invalidate in-flight polls
   if (liveTimer) {
     clearInterval(liveTimer);
     liveTimer = null;
   }
+  state.liveStatus.scanning = false;
 }
 
-async function loadJson(name) {
-  const res = await fetch(`${DATA_BASE}/${name}?t=${Date.now()}`, { cache: 'no-store' });
+async function loadJson(name, signal) {
+  const res = await fetch(`${DATA_BASE}/${name}?t=${Date.now()}`, { cache: 'no-store', signal });
   if (!res.ok) throw new Error(`Failed to load ${name} (${res.status})`);
   return res.json();
 }
@@ -1142,27 +1252,29 @@ function maybeDefaultStocks() {
 }
 
 async function refreshData(manual = false) {
-  if (state.refreshing) return;
+  const reqId = ++feedReqId;
+  if (feedAbort) {
+    try { feedAbort.abort(); } catch { /* ignore */ }
+  }
+  feedAbort = new AbortController();
+  const { signal } = feedAbort;
   state.refreshing = true;
   if (manual) render();
   try {
     const [launchesDoc, meta, safe, quotes] = await Promise.all([
-      loadJson('launches.json'),
-      loadJson('meta.json').catch(() => null),
-      loadJson('safe-links.json').catch(() => null),
-      loadJson('quotes.json').catch(() => null),
+      loadJson('launches.json', signal),
+      loadJson('meta.json', signal).catch((e) => { if (e.name === 'AbortError') throw e; return null; }),
+      loadJson('safe-links.json', signal).catch((e) => { if (e.name === 'AbortError') throw e; return null; }),
+      loadJson('quotes.json', signal).catch((e) => { if (e.name === 'AbortError') throw e; return null; }),
     ]);
+    if (reqId !== feedReqId) return;
     if (quotes) ingestQuotes(quotes);
     const list = Array.isArray(launchesDoc?.launches)
       ? launchesDoc.launches
       : (Array.isArray(launchesDoc) ? launchesDoc : []);
-    // Re-enrich pons urls / null-safe
-    state.launches = list.map((x) => enrichLaunchRow(x));
-    knownTokensAtBoot = new Set(state.launches.map((x) => (x.token || '').toLowerCase()).filter(Boolean));
+    // Merge feed into state so Live-only rows are not wiped
+    applyFeedLaunches(list);
     state.meta = meta || { updatedAt: launchesDoc?.updatedAt };
-    if (meta?.factories?.tokenLaunchedTopicV2) {
-      /* topics already hardcoded; meta available for future */
-    }
     state.safe = safe;
     state.loading = false;
     state.error = null;
@@ -1171,11 +1283,14 @@ async function refreshData(manual = false) {
     setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
     maybeDefaultStocks();
   } catch (e) {
+    if (e.name === 'AbortError' || reqId !== feedReqId) return;
     state.loading = false;
     if (!state.launches.length) state.error = e.message || String(e);
   } finally {
-    state.refreshing = false;
-    render();
+    if (reqId === feedReqId) {
+      state.refreshing = false;
+      render();
+    }
   }
 }
 
@@ -1211,7 +1326,30 @@ function bindKeyboard() {
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => refreshData(false), REFRESH_MS);
+  refreshTimer = null;
+  if (document.hidden) return;
+  refreshTimer = setInterval(() => {
+    if (!document.hidden) refreshData(false);
+  }, REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopLive();
+    stopAutoRefresh();
+    updateLivePill();
+    return;
+  }
+  startAutoRefresh();
+  if (state.live) startLive();
+  else updateLivePill();
 }
 
 async function boot() {
@@ -1222,6 +1360,7 @@ async function boot() {
     parseHash();
     render();
   });
+  document.addEventListener('visibilitychange', onVisibilityChange);
   render();
   await refreshData(false);
   startAutoRefresh();

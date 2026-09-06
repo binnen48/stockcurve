@@ -526,7 +526,25 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 .filter-btn[data-f="unknown"].active{background:#64748b;color:#0b0f14}
 .badge.live{background:rgba(74,222,128,.18);color:var(--ok);border:1px solid rgba(74,222,128,.4)}
 .badge.swarm{background:rgba(244,114,182,.15);color:#f9a8d4;border:1px solid rgba(244,114,182,.35)}
-.card.is-live-flash{border-color:rgba(74,222,128,.55);box-shadow:0 0 0 1px rgba(74,222,128,.2),var(--shadow)}
+.card.is-live-flash{
+  border-color:rgba(74,222,128,.55);
+  box-shadow:0 0 0 1px rgba(74,222,128,.25),0 0 24px rgba(74,222,128,.12),var(--shadow);
+  outline:1px solid rgba(74,222,128,.35);
+  outline-offset:0;
+}
+.sc-toast{
+  position:fixed;z-index:9999;left:50%;bottom:18px;transform:translateX(-50%);
+  max-width:min(520px,92vw);display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;border-radius:12px;border:1px solid rgba(251,113,133,.45);
+  background:rgba(20,10,14,.94);color:var(--text);box-shadow:var(--shadow);
+  font-size:.78rem;line-height:1.35;
+}
+.sc-toast-x{
+  appearance:none;border:0;background:transparent;color:var(--muted);
+  font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;
+}
+.sc-toast-x:hover{color:var(--text)}
+
 .top-deps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .top-deps li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem}
 .grad-bar span{font-size:.65rem;white-space:nowrap}

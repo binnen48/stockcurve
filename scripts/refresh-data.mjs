@@ -110,7 +110,7 @@ async function fetchJson(url, timeoutMs = 25000) {
       signal: ctrl.signal,
       headers: {
         Accept: 'application/json',
-        'User-Agent': 'StockCurve/1.1 (+https://github.com/binnen48/stockcurve)',
+        'User-Agent': 'StockCurve/1.1 (+https://github.com/stockcurve/stockcurve.github.io)',
       },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -128,7 +128,7 @@ async function fetchText(url, timeoutMs = 25000) {
       signal: ctrl.signal,
       headers: {
         Accept: 'text/html,application/xhtml+xml',
-        'User-Agent': 'StockCurve/1.1 (+https://github.com/binnen48/stockcurve)',
+        'User-Agent': 'StockCurve/1.1 (+https://github.com/stockcurve/stockcurve.github.io)',
       },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -723,6 +723,35 @@ async function main() {
     }
   } else {
     console.log('Skipping receipt enrich (eth_getLogs already populated pairTokens)');
+  }
+
+  // Prefer previously known names/symbols for stubs that failed hydrate last run
+  try {
+    const prevNamed = await loadPreviousLaunches();
+    const prevMap = new Map(
+      prevNamed
+        .filter((x) => x?.token && x.name && x.name !== 'Unknown')
+        .map((x) => [String(x.token).toLowerCase(), x]),
+    );
+    let restoredMeta = 0;
+    for (const item of merged) {
+      const key = String(item?.token || '').toLowerCase();
+      if (!key) continue;
+      const prev = prevMap.get(key);
+      if (!prev) continue;
+      if ((!item.name || item.name === 'Unknown') && prev.name && prev.name !== 'Unknown') {
+        item.name = prev.name;
+        restoredMeta += 1;
+      }
+      if ((!item.symbol || item.symbol === '???') && prev.symbol && prev.symbol !== '???') {
+        item.symbol = prev.symbol;
+      }
+      if (!item.launchedAt && prev.launchedAt) item.launchedAt = prev.launchedAt;
+      if ((!item.pairToken || item.pairToken === ZERO) && prev.pairToken) item.pairToken = prev.pairToken;
+    }
+    if (restoredMeta) console.log(`Restored stub metadata from disk: ${restoredMeta}`);
+  } catch (e) {
+    errors.push(`prev-meta: ${e.message || e}`);
   }
 
   try {
