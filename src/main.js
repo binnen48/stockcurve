@@ -1,5 +1,5 @@
 const DATA_BASE = `${import.meta.env.BASE_URL}feed`;
-const REFRESH_MS = 90_000;
+const REFRESH_MS = 45_000;
 const LIVE_POLL_MS = 18_000;
 const MAX_LAUNCHES = 750;
 const LIVE_FAIL_TOAST_AFTER = 3;
@@ -54,7 +54,7 @@ const S = {
   whyBody:
     'Most Pons tools track $PONS burns. StockCurve watches <strong style="color:var(--text)">which asset a launch is quoted against</strong> — NVDA/TSLA/… tokenized stocks, USDG, or ETH — so RWA-quote discovery is one filter away.',
   whyBody2:
-    'Public static JSON under <code>/feed/</code>. No login. No API keys. Browser auto-refresh every 90s; server feed refresh about every 15 minutes. Live mode polls Robinhood Chain RPC for TokenLaunched events.',
+    'Public static JSON under <code>/feed/</code>. No login. No API keys. Browser auto-refresh every ~45s; server republish about hourly. Live mode polls Robinhood Chain RPC for TokenLaunched events.',
   disclaimer:
     '<strong>Disclaimer:</strong> Independent community tool — not affiliated with Robinhood or Pons. Not financial advice. DYOR.',
   footer: 'StockCurve · Robinhood Chain (4663)',
