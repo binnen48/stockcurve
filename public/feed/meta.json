@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T03:10:55.065Z",
+  "updatedAt": "2026-09-06T03:23:31.486Z",
   "source": {
     "recent100": "https://www.ponsfamily.com/api/pons-launches?limit=100",
     "recent20": "https://www.ponsfamily.com/api/pons-launches?limit=20",
@@ -18,12 +18,12 @@
   "counts": {
     "launches": 500,
     "recent100Fetched": 100,
-    "recent20Fetched": 0,
+    "recent20Fetched": 35,
     "historicalFetched": 2156,
     "ethGetLogsTokenLaunched": 0,
     "receiptPairTokenEnrich": {
-      "ok": 25,
-      "fail": 15,
+      "ok": 33,
+      "fail": 7,
       "attempted": 40
     },
     "stubMetadataHydrate": {
@@ -45,7 +45,7 @@
   "rpc": {
     "ok": true,
     "chainId": 4663,
-    "blockNumber": 55645860,
+    "blockNumber": 55653368,
     "factories": {
       "v1": "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
       "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
@@ -62,8 +62,8 @@
   "ethGetLogs": {
     "ok": true,
     "count": 0,
-    "fromBlock": 55625811,
-    "toBlock": 55645811,
+    "fromBlock": 55633318,
+    "toBlock": 55653318,
     "topicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
     "topicRecent": "0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a",
     "factories": {
@@ -80,8 +80,6 @@
     ],
     "samples": []
   },
-  "errors": [
-    "recent20: This operation was aborted"
-  ],
+  "errors": [],
   "disclaimer": "StockCurve is an independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice."
 }
