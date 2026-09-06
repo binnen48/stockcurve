@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT = join(__dirname, '..', 'public', 'data');
+const OUT = join(__dirname, '..', 'public', 'feed');
 const LAUNCHES_LIMIT_100 = 'https://www.ponsfamily.com/api/pons-launches?limit=100';
 const LAUNCHES_LIMIT_20 = 'https://www.ponsfamily.com/api/pons-launches?limit=20';
 const HIST_URL = 'https://www.ponsfamily.com/api/pons-launches';
@@ -196,7 +196,9 @@ function normalizeLaunch(raw) {
     explorerDeployerUrl: raw.deployer
       ? `https://robinhoodchain.blockscout.com/address/${raw.deployer}`
       : null,
-    ponsUrl: `https://www.ponsfamily.com/`,
+    ponsUrl: raw.token
+      ? `https://www.ponsfamily.com/launchpad?token=${raw.token}`
+      : 'https://www.ponsfamily.com/',
   };
 }
 
@@ -494,6 +496,50 @@ async function loadPreviousLaunches() {
   }
 }
 
+
+async function fillLaunchedAtFromBlocks(launches, concurrency = 3) {
+  const need = launches.filter((x) => !x.launchedAt && x.blockNumber != null);
+  if (!need.length) return { filled: 0, attempted: 0 };
+  const cache = new Map();
+  let filled = 0;
+  let i = 0;
+  async function fetchBlockIso(bn) {
+    if (cache.has(bn)) return cache.get(bn);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        if (attempt) await sleep(600 * attempt);
+        const block = await rpc('eth_getBlockByNumber', [`0x${bn.toString(16)}`, false]);
+        if (block?.timestamp) {
+          const iso = new Date(parseInt(block.timestamp, 16) * 1000).toISOString();
+          cache.set(bn, iso);
+          return iso;
+        }
+        return null;
+      } catch {
+        /* retry */
+      }
+    }
+    return null;
+  }
+  async function worker() {
+    while (i < need.length) {
+      const idx = i++;
+      const item = need[idx];
+      const bn = Number(item.blockNumber);
+      if (!Number.isFinite(bn)) continue;
+      const iso = await fetchBlockIso(bn);
+      if (iso) {
+        item.launchedAt = iso;
+        filled += 1;
+      }
+      await sleep(80);
+    }
+  }
+  const n = Math.min(concurrency, need.length);
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return { filled, attempted: need.length };
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   const errors = [];
@@ -737,6 +783,15 @@ async function main() {
       }));
       errors.push('fallback: previous launches.json');
     }
+  }
+
+
+  try {
+    const launchedFill = await fillLaunchedAtFromBlocks(launchesRaw, 8);
+    console.log(`launchedAt from blocks: filled=${launchedFill.filled} attempted=${launchedFill.attempted}`);
+  } catch (e) {
+    errors.push(`launchedAt-blocks: ${e.message || e}`);
+    console.warn('launchedAt block fill soft-fail:', e.message || e);
   }
 
   const launches = launchesRaw.map(normalizeLaunch);
