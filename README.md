@@ -1,5 +1,10 @@
 # StockCurve
 
+**Live:** https://stockcurve.github.io/
+
+Org: https://github.com/stockcurve · Source: https://github.com/stockcurve/stockcurve.github.io
+
+
 Independent radar for **Pons** memecoin launches on Robinhood Chain (chain ID 4663), filtered by quote asset class: tokenized stocks (RWA), USDG, or ETH/WETH.
 
 Unique niche: RWA-quote discovery + official Safe Links panel. No login. No API keys.
@@ -45,5 +50,4 @@ Default build base is `/` (independent host). For legacy Pages path set env STOC
 
 ## Legacy mirror
 
-Historical GitHub Pages mirror (may lag): https://binnen48.github.io/stockcurve/
-
+Historical GitHub Pages mirror (may lag): https://stockcurve.github.io/
