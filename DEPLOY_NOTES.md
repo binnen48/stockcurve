@@ -1,6 +1,9 @@
 # Deploy notes
 
-Live URL: https://binnen48.github.io/stockcurve/
+Primary path: independent host with Vite base `/`. Legacy Pages mirror kept for compatibility.
+
+
+Legacy mirror URL: https://binnen48.github.io/stockcurve/
 
 ## Current
 

@@ -1,21 +1,44 @@
 #!/usr/bin/env node
 /**
- * StockCurve data refresh — free public sources only (Pons Family API + static quote registry).
+ * StockCurve data refresh — free public sources only (Pons Family API + static quote registry + optional RPC logs).
  * Writes public/data/{launches,quotes,safe-links,meta}.json
+ *
+ * Factories (Robinhood Chain 4663):
+ *   v1 (superseded): 0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB
+ *   v2 launch:       0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e
+ *   recent API / alt: 0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75
+ *
+ * V2 TokenLaunched topic0 (keccak of signature):
+ *   TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)
+ *   = 0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607
  */
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, '..', 'public', 'data');
-const LAUNCHES_URL = 'https://www.ponsfamily.com/api/pons-launches?limit=100';
+const LAUNCHES_LIMIT_100 = 'https://www.ponsfamily.com/api/pons-launches?limit=100';
+const LAUNCHES_LIMIT_20 = 'https://www.ponsfamily.com/api/pons-launches?limit=20';
 const HIST_URL = 'https://www.ponsfamily.com/api/pons-launches';
+const BITQUERY_PONS_DOCS = 'https://docs.bitquery.io/docs/blockchain/robinhood/pons-api/';
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
 const WETH = '0x0bd7d308f8e1639fab988df18a8011f41eacad73';
 const ZERO = '0x0000000000000000000000000000000000000000';
 
-/** Quote registry: lowercase address -> { symbol, class: 'eth'|'usdg'|'stocks'|'btc', name } */
+const FACTORY_V1 = '0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB';
+const FACTORY_V2 = '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e';
+const FACTORY_RECENT = '0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75';
+const FACTORIES = [FACTORY_V1, FACTORY_V2, FACTORY_RECENT];
+
+/** V2 TokenLaunched topic0 from Bitquery / verified ABI */
+const TOPIC_TOKEN_LAUNCHED_V2 =
+  '0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607';
+/** Recent/API factory uses V1-style TokenLaunched topic0 */
+const TOPIC_TOKEN_LAUNCHED_V1STYLE =
+  '0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a';
+
+/** Quote registry: lowercase address -> { symbol, class, name, decimals } */
 const QUOTE_REGISTRY = {
   [ZERO]: { symbol: 'ETH', class: 'eth', name: 'Native ETH', decimals: 18 },
   [WETH]: { symbol: 'WETH', class: 'eth', name: 'Wrapped ETH', decimals: 18 },
@@ -79,22 +102,37 @@ const SAFE_LINKS = [
   },
 ];
 
-const FACTORIES = [
-  '0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB', // v1
-  '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e', // v2
-  '0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75', // recent API
-];
-
 async function fetchJson(url, timeoutMs = 25000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
-      headers: { Accept: 'application/json', 'User-Agent': 'StockCurve/1.0 (+https://github.com/binnen48/stockcurve)' },
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'StockCurve/1.1 (+https://github.com/binnen48/stockcurve)',
+      },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchText(url, timeoutMs = 25000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'User-Agent': 'StockCurve/1.1 (+https://github.com/binnen48/stockcurve)',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    return await res.text();
   } finally {
     clearTimeout(t);
   }
@@ -155,24 +193,271 @@ function normalizeLaunch(raw) {
     explorerTxUrl: raw.transactionHash
       ? `https://robinhoodchain.blockscout.com/tx/${raw.transactionHash}`
       : null,
+    explorerDeployerUrl: raw.deployer
+      ? `https://robinhoodchain.blockscout.com/address/${raw.deployer}`
+      : null,
     ponsUrl: `https://www.ponsfamily.com/`,
   };
 }
 
-function mergeByToken(recent, historical) {
+function mergeByToken(...lists) {
   const map = new Map();
-  for (const item of historical) {
-    if (item?.token) map.set(item.token.toLowerCase(), item);
-  }
-  // Prefer recent (fresher market data)
-  for (const item of recent) {
-    if (item?.token) map.set(item.token.toLowerCase(), item);
+  for (const list of lists) {
+    for (const item of list) {
+      if (item?.token) map.set(item.token.toLowerCase(), item);
+    }
   }
   return [...map.values()].sort((a, b) => {
     const ta = a.launchedAt ? Date.parse(a.launchedAt) : 0;
     const tb = b.launchedAt ? Date.parse(b.launchedAt) : 0;
     return tb - ta;
   });
+}
+
+function wordAddress(word) {
+  if (!word) return null;
+  const hex = String(word).replace(/^0x/, '').padStart(64, '0');
+  return `0x${hex.slice(24)}`.toLowerCase();
+}
+
+/**
+ * Decode TokenLaunched logs for V2 and recent/V1-style factories.
+ * V2: topics[1]=token, [2]=curve, [3]=deployer; data pairToken,launchConfigId,graduationThreshold
+ * Recent/V1-style: topics[1]=token, [2]=deployer, [3]=?; data pairToken, pool, ...
+ */
+function decodeTokenLaunchedLog(log, style = 'v2') {
+  const topics = log.topics || [];
+  const data = (log.data || '0x').replace(/^0x/, '');
+  const token = wordAddress(topics[1]);
+  let curve = null;
+  let deployer = null;
+  let pairToken = wordAddress(data.slice(0, 64));
+  let launchConfigId = null;
+  let graduationThreshold = null;
+  let factory = FACTORY_V2;
+  if (style === 'v1style') {
+    deployer = wordAddress(topics[2]);
+    curve = wordAddress(data.slice(64, 128)); // pool often in word1
+    factory = (log.address || FACTORY_RECENT);
+    // Normalize native ETH sentinel to WETH for registry classify convenience? keep ZERO.
+  } else {
+    curve = wordAddress(topics[2]);
+    deployer = wordAddress(topics[3]);
+    launchConfigId = data.slice(64, 128) ? BigInt(`0x${data.slice(64, 128)}`).toString() : null;
+    graduationThreshold = data.slice(128, 192) ? BigInt(`0x${data.slice(128, 192)}`).toString() : null;
+    factory = (log.address || FACTORY_V2);
+  }
+  return {
+    token,
+    curve,
+    deployer,
+    pairToken,
+    launchConfigId,
+    graduationThreshold,
+    transactionHash: log.transactionHash,
+    blockNumber: log.blockNumber ? parseInt(log.blockNumber, 16) : null,
+    factory,
+    style,
+  };
+}
+
+async function fetchLogs(address, topic, from, latest) {
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt) await sleep(400 * attempt);
+      return await rpc('eth_getLogs', [{
+        address,
+        fromBlock: `0x${from.toString(16)}`,
+        toBlock: 'latest',
+        topics: [topic],
+      }]);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function tryExpandQuotesFromBitqueryDocs() {
+  const added = [];
+  try {
+    const html = await fetchText(BITQUERY_PONS_DOCS, 30000);
+    // Match table-ish rows: SYMBOL ... 0xaddr
+    const re = /\b([A-Z]{2,6})\b[\s\S]{0,80}?(0x[a-fA-F0-9]{40})/g;
+    let m;
+    const knownAddrs = new Set(Object.keys(QUOTE_REGISTRY));
+    const skip = new Set([
+      FACTORY_V1.toLowerCase(),
+      FACTORY_V2.toLowerCase(),
+      FACTORY_RECENT.toLowerCase(),
+      WETH,
+      ZERO,
+      '0xe5e702641ea86f4ae6cc3cdaed2b886f976be044',
+      '0xe33e9e479df8802cb0866d5d05258bec4cf62948',
+      '0x267444d099b10fb5ed7c3cc7b7c767adca574952',
+      '0x8366a39cc670b4001a1121b8f6a443a643e40951',
+      '0xd3afeb2a57f70ef218aa82451c51b2fb0416ac9e',
+      '0x42df2a798f82289e177311362e8f5ccc45c1219c',
+      '0xc7819b64a1daecd7ec19856d026cb14efbd89046',
+      '0xf5695117b99b6f6401e67d4195bd653628176c6c',
+      '0x3711cea4feade896c913c68f01eda97cb06d1a42',
+      '0x5fc5360d0400a0fd4f2af552add042d716f1d168',
+      '0xcec185eb182c47d1ba1efc84e6959e18cd620be4',
+    ]);
+    // Prefer explicit stock tickers from docs table section near "AAPL" etc.
+    const stockSyms = new Set([
+      'AAPL','AMD','AMZN','BB','COIN','COST','CRCL','DELL','DJT','GLD','GME','GOOGL','HIMS',
+      'LLY','META','MSFT','MSTR','MU','NVDA','PLTR','QQQ','RBLX','RDDT','SKHY','SNDK','SPCX',
+      'SPY','TSLA','TSM','TTWO','USO','WYFI','NFLX','HOOD','INTC','BABA','DIS','UBER','SHOP',
+      'ARM','AVGO','ORCL','CRM','NOW','SNOW','PANW','ABNB','SQ','PYPL','XOM','JPM','BAC','V',
+    ]);
+    while ((m = re.exec(html))) {
+      const symbol = m[1];
+      const address = m[2].toLowerCase();
+      if (!stockSyms.has(symbol)) continue;
+      if (skip.has(address) || knownAddrs.has(address)) continue;
+      // Avoid mistaking random nearby contract for stock if symbol already mapped
+      const alreadySym = Object.values(QUOTE_REGISTRY).some((x) => x.symbol === symbol && x.class === 'stocks');
+      if (alreadySym) continue;
+      QUOTE_REGISTRY[address] = { symbol, class: 'stocks', name: symbol, decimals: 18 };
+      knownAddrs.add(address);
+      added.push({ symbol, address });
+    }
+  } catch (e) {
+    return { ok: false, error: String(e.message || e), added };
+  }
+  return { ok: true, added, source: BITQUERY_PONS_DOCS };
+}
+
+async function enrichPairTokenFromReceipts(launches, limit = 120) {
+  const out = launches.slice();
+  const targets = out
+    .filter((x) => x?.transactionHash && x?.token)
+    .slice(0, limit);
+  let ok = 0;
+  let fail = 0;
+  const TOPIC = TOPIC_TOKEN_LAUNCHED_V1STYLE.toLowerCase();
+  const TOPIC_V2 = TOPIC_TOKEN_LAUNCHED_V2.toLowerCase();
+  // modest concurrency
+  const queue = targets.slice();
+  async function worker() {
+    while (queue.length) {
+      const item = queue.shift();
+      try {
+        const receipt = await rpc('eth_getTransactionReceipt', [item.transactionHash]);
+        const logs = receipt?.logs || [];
+        const hit = logs.find((l) => {
+          const t0 = (l.topics?.[0] || '').toLowerCase();
+          return t0 === TOPIC || t0 === TOPIC_V2;
+        });
+        if (!hit) continue;
+        const data = (hit.data || '0x').replace(/^0x/, '');
+        const pair = wordAddress(data.slice(0, 64));
+        if (pair) {
+          item.pairToken = pair;
+          ok += 1;
+        }
+      } catch {
+        fail += 1;
+      }
+      await sleep(60);
+    }
+  }
+  await Promise.all([worker(), worker()]);
+  return { launches: out, ok, fail, attempted: targets.length };
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function hydrateStubMetadata(launches, limit = 60) {
+  const stubs = launches.filter((x) => x && (x._stub || x.name === 'Unknown' || x.symbol === '???') && x.token);
+  const targets = stubs.slice(0, limit);
+  let ok = 0;
+  function decodeString(hex) {
+    const h = String(hex || '').replace(/^0x/, '');
+    if (h.length < 128) return null;
+    const len = parseInt(h.slice(64, 128), 16);
+    if (!Number.isFinite(len) || len <= 0 || len > 128) return null;
+    const data = h.slice(128, 128 + len * 2);
+    return Buffer.from(data, 'hex').toString('utf8').replace(/\0/g, '').trim();
+  }
+  for (const item of targets) {
+    try {
+      const [nameHex, symHex] = await Promise.all([
+        rpc('eth_call', [{ to: item.token, data: '0x06fdde03' }, 'latest']),
+        rpc('eth_call', [{ to: item.token, data: '0x95d89b41' }, 'latest']),
+      ]);
+      const name = decodeString(nameHex);
+      const symbol = decodeString(symHex);
+      if (name) item.name = name;
+      if (symbol) item.symbol = symbol;
+      if (name || symbol) ok += 1;
+      delete item._stub;
+    } catch {
+      /* rate limit / revert */
+    }
+    await sleep(40);
+  }
+  return { ok, attempted: targets.length };
+}
+
+async function tryEthGetLogsTokenLaunched() {
+  try {
+    const blockHex = await rpc('eth_blockNumber');
+    const latest = parseInt(blockHex, 16);
+    // Keep ranges modest for public RPC (~half day)
+    const fromV2 = Math.max(0, latest - 15_000);
+    const fromRecent = Math.max(0, latest - 20_000);
+    const errors = [];
+    let logsV2 = [];
+    let logsRecent = [];
+    try {
+      logsV2 = await fetchLogs(FACTORY_V2, TOPIC_TOKEN_LAUNCHED_V2, fromV2, latest);
+    } catch (e) {
+      errors.push(`v2: ${e.message || e}`);
+    }
+    await sleep(300);
+    try {
+      logsRecent = await fetchLogs(FACTORY_RECENT, TOPIC_TOKEN_LAUNCHED_V1STYLE, fromRecent, latest);
+    } catch (e) {
+      errors.push(`recent: ${e.message || e}`);
+    }
+    const decoded = [
+      ...(Array.isArray(logsV2) ? logsV2 : []).map((l) => decodeTokenLaunchedLog(l, 'v2')),
+      ...(Array.isArray(logsRecent) ? logsRecent : []).map((l) => decodeTokenLaunchedLog(l, 'v1style')),
+    ].filter((x) => x.token);
+    return {
+      ok: true,
+      count: decoded.length,
+      fromBlock: Math.min(fromV2, fromRecent),
+      toBlock: latest,
+      topicV2: TOPIC_TOKEN_LAUNCHED_V2,
+      topicRecent: TOPIC_TOKEN_LAUNCHED_V1STYLE,
+      factories: { v2: FACTORY_V2, recent: FACTORY_RECENT },
+      counts: { v2: Array.isArray(logsV2) ? logsV2.length : 0, recent: Array.isArray(logsRecent) ? logsRecent.length : 0 },
+      softErrors: errors,
+      samples: decoded.slice(0, 5).map((x) => ({
+        token: x.token,
+        pairToken: x.pairToken,
+        deployer: x.deployer,
+        tx: x.transactionHash,
+        style: x.style,
+      })),
+      decoded,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: String(e.message || e),
+      topicV2: TOPIC_TOKEN_LAUNCHED_V2,
+      topicRecent: TOPIC_TOKEN_LAUNCHED_V1STYLE,
+      factories: { v2: FACTORY_V2, recent: FACTORY_RECENT },
+      note: 'eth_getLogs optional enrichment; API launches remain primary.',
+    };
+  }
 }
 
 async function tryRpcProbe() {
@@ -185,27 +470,61 @@ async function tryRpcProbe() {
       ok: true,
       chainId: parseInt(chainId, 16),
       blockNumber: parseInt(block, 16),
-      factories: FACTORIES,
-      note: 'RPC reachable. Quote class comes from pairToken registry; eth_getLogs enrichment optional.',
+      factories: {
+        v1: FACTORY_V1,
+        v2: FACTORY_V2,
+        recentApi: FACTORY_RECENT,
+        all: FACTORIES,
+      },
+      tokenLaunchedTopicV2: TOPIC_TOKEN_LAUNCHED_V2,
+      note: 'RPC reachable. Quote class from pairToken registry; eth_getLogs TokenLaunched enrichment attempted when available.',
     };
   } catch (e) {
-    return { ok: false, error: String(e.message || e) };
+    return { ok: false, error: String(e.message || e), factories: FACTORIES };
+  }
+}
+
+async function loadPreviousLaunches() {
+  try {
+    const raw = await readFile(join(OUT, 'launches.json'), 'utf8');
+    const doc = JSON.parse(raw);
+    return Array.isArray(doc?.launches) ? doc.launches : [];
+  } catch {
+    return [];
   }
 }
 
 async function main() {
   await mkdir(OUT, { recursive: true });
   const errors = [];
-  let recent = [];
+  let recent100 = [];
+  let recent20 = [];
   let historical = [];
 
+  const quoteExpand = await tryExpandQuotesFromBitqueryDocs();
+  if (!quoteExpand.ok) errors.push(`quotes-expand: ${quoteExpand.error}`);
+  else if (quoteExpand.added?.length) {
+    console.log(`Expanded quotes registry +${quoteExpand.added.length}:`, quoteExpand.added);
+  } else {
+    console.log('Quotes registry: no new stock addresses found in Bitquery docs (snapshot already complete).');
+  }
+
   try {
-    const data = await fetchJson(LAUNCHES_URL);
-    recent = Array.isArray(data) ? data : [];
-    console.log(`Recent launches: ${recent.length}`);
+    const data = await fetchJson(LAUNCHES_LIMIT_100);
+    recent100 = Array.isArray(data) ? data : [];
+    console.log(`Recent launches limit=100: ${recent100.length}`);
   } catch (e) {
-    errors.push(`recent: ${e.message || e}`);
-    console.error('Recent fetch failed:', e.message || e);
+    errors.push(`recent100: ${e.message || e}`);
+    console.error('Recent limit=100 fetch failed:', e.message || e);
+  }
+
+  try {
+    const data = await fetchJson(LAUNCHES_LIMIT_20);
+    recent20 = Array.isArray(data) ? data : [];
+    console.log(`Recent launches limit=20: ${recent20.length}`);
+  } catch (e) {
+    errors.push(`recent20: ${e.message || e}`);
+    console.error('Recent limit=20 fetch failed:', e.message || e);
   }
 
   try {
@@ -216,16 +535,210 @@ async function main() {
     errors.push(`historical: ${e.message || e}`);
     console.error('Historical fetch failed:', e.message || e);
   }
+  if (historical.length === 0) {
+    const prev = await loadPreviousLaunches();
+    if (prev.length) {
+      historical = prev.map((x) => ({
+        token: x.token,
+        name: x.name,
+        symbol: x.symbol,
+        description: x.description,
+        logo: x.logo,
+        factory: x.factory,
+        deployer: x.deployer,
+        pool: x.pool,
+        pairToken: x.pairToken,
+        transactionHash: x.transactionHash,
+        blockNumber: x.blockNumber,
+        launchedAt: x.launchedAt,
+        initialBuyWei: x.initialBuyWei,
+        priceUsd: x.priceUsd,
+        marketCapUsd: x.marketCapUsd,
+        liquidityUsd: x.liquidityUsd,
+        graduated: x.graduated,
+        graduationProgressPct: x.graduationProgressPct,
+        pairedPrincipalEth: x.pairedPrincipalEth,
+        graduationThresholdEth: x.graduationThresholdEth,
+        latestBuyAt: x.latestBuyAt,
+      }));
+      console.warn(`Seeded historical from previous launches.json (${historical.length})`);
+      errors.push('historical-fallback: previous launches.json');
+    }
+  }
 
-  const merged = mergeByToken(recent, historical);
-  // Cap payload for Pages: keep newest 400 + any non-ETH quotes always
-  const nonEth = merged.filter((x) => classifyPair(x.pairToken).quoteClass !== 'eth');
-  const ethOnly = merged.filter((x) => classifyPair(x.pairToken).quoteClass === 'eth');
-  const capped = [...nonEth, ...ethOnly].filter((x, i, arr) => {
-    const k = x.token.toLowerCase();
-    return arr.findIndex((y) => y.token.toLowerCase() === k) === i;
-  });
-  const launchesRaw = capped.slice(0, 500);
+  // Prefer freshest market data: limit=20 overlays limit=100 overlays historical
+  const merged = mergeByToken(historical, recent100, recent20);
+
+  let receiptInfo = { ok: 0, fail: 0, attempted: 0 };
+  let hydrateInfo = { ok: 0, attempted: 0 };
+
+
+  await sleep(500);
+  const logsInfo = await tryEthGetLogsTokenLaunched();
+  if (!logsInfo.ok) {
+    errors.push(`eth_getLogs: ${logsInfo.error}`);
+    console.warn('eth_getLogs TokenLaunched soft-fail:', logsInfo.error);
+  } else {
+    console.log(`eth_getLogs TokenLaunched: ${logsInfo.count} (blocks ${logsInfo.fromBlock}→${logsInfo.toBlock})`);
+    // Enrich pairToken/deployer/factory when API row missing fields
+    const byTok = new Map(merged.map((x) => [x.token.toLowerCase(), x]));
+    let enriched = 0;
+    let stubs = 0;
+    for (const ev of logsInfo.decoded || []) {
+      const key = ev.token.toLowerCase();
+      const existing = byTok.get(key);
+      if (existing) {
+        // Pons HTTP API currently reports WETH for every launch — trust on-chain pairToken.
+        if (ev.pairToken) {
+          existing.pairToken = ev.pairToken;
+          enriched += 1;
+        }
+        if (ev.deployer) existing.deployer = existing.deployer || ev.deployer;
+        if (ev.factory) existing.factory = existing.factory || ev.factory;
+        if (ev.transactionHash) existing.transactionHash = existing.transactionHash || ev.transactionHash;
+        if (ev.blockNumber) existing.blockNumber = existing.blockNumber || ev.blockNumber;
+        if (ev.curve) existing.pool = existing.pool || ev.curve;
+      } else {
+        // Keep stub count low; only keep non-ETH discoveries (API already covers ETH).
+        if (stubs >= 80) continue;
+        const cls = classifyPair(ev.pairToken).quoteClass;
+        if (cls === 'eth') continue;
+        const stub = {
+          token: ev.token,
+          name: 'Unknown',
+          symbol: '???',
+          description: '',
+          logo: null,
+          factory: ev.factory,
+          deployer: ev.deployer,
+          pool: ev.curve,
+          pairToken: ev.pairToken,
+          transactionHash: ev.transactionHash,
+          blockNumber: ev.blockNumber,
+          launchedAt: null,
+          priceUsd: null,
+          marketCapUsd: null,
+          graduated: false,
+          graduationProgressPct: null,
+          _stub: true,
+        };
+        merged.push(stub);
+        byTok.set(key, stub);
+        stubs += 1;
+      }
+    }
+    console.log(`eth_getLogs overlay: enriched=${enriched} stubs=${stubs}`);
+  }
+
+  // If logs failed/empty, keep prior non-ETH discoveries from disk so Stocks filter stays useful.
+  if (!logsInfo.ok || !(logsInfo.count > 0)) {
+    const prev = await loadPreviousLaunches();
+    const byTok = new Map(merged.map((x) => [String(x.token || '').toLowerCase(), x]));
+    let kept = 0;
+    for (const x of prev) {
+      const cls = x.quoteClass || classifyPair(x.pairToken).quoteClass;
+      if (cls === 'eth' || cls === 'unknown') continue;
+      const key = String(x.token || '').toLowerCase();
+      if (!key || byTok.has(key)) continue;
+      merged.push({
+        token: x.token,
+        name: x.name,
+        symbol: x.symbol,
+        description: x.description,
+        logo: x.logo,
+        factory: x.factory,
+        deployer: x.deployer,
+        pool: x.pool,
+        pairToken: x.pairToken,
+        transactionHash: x.transactionHash,
+        blockNumber: x.blockNumber,
+        launchedAt: x.launchedAt,
+        priceUsd: x.priceUsd,
+        marketCapUsd: x.marketCapUsd,
+        graduated: x.graduated,
+        graduationProgressPct: x.graduationProgressPct,
+      });
+      byTok.set(key, x);
+      kept += 1;
+      if (kept >= 100) break;
+    }
+    if (kept) console.warn(`Restored ${kept} prior non-ETH launches from disk`);
+  }
+
+  if ((logsInfo.count || 0) < 10) {
+    try {
+      await sleep(250);
+      const enrichedRcpt = await enrichPairTokenFromReceipts(merged, 40);
+      receiptInfo = { ok: enrichedRcpt.ok, fail: enrichedRcpt.fail, attempted: enrichedRcpt.attempted };
+      console.log(`Receipt pairToken enrich: ok=${receiptInfo.ok} fail=${receiptInfo.fail} attempted=${receiptInfo.attempted}`);
+    } catch (e) {
+      errors.push(`receipts: ${e.message || e}`);
+      console.warn('Receipt enrich soft-fail:', e.message || e);
+    }
+  } else {
+    console.log('Skipping receipt enrich (eth_getLogs already populated pairTokens)');
+  }
+
+  try {
+    hydrateInfo = await hydrateStubMetadata(merged, 50);
+    console.log(`Stub metadata hydrate: ok=${hydrateInfo.ok} attempted=${hydrateInfo.attempted}`);
+  } catch (e) {
+    errors.push(`hydrate: ${e.message || e}`);
+  }
+
+  // Cap payload: prefer named API rows; keep all non-ETH quotes; fill with ETH.
+  const dedupe = (list) => {
+    const seen = new Set();
+    const out = [];
+    for (const x of list) {
+      const k = (x.token || '').toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(x);
+    }
+    return out;
+  };
+  const named = merged.filter((x) => x && x.name && x.name !== 'Unknown' && x.symbol && x.symbol !== '???');
+  const stubsOnly = merged.filter((x) => x && (x._stub || x.name === 'Unknown' || x.symbol === '???'));
+  const namedNonEth = named.filter((x) => classifyPair(x.pairToken).quoteClass !== 'eth');
+  const namedEth = named.filter((x) => classifyPair(x.pairToken).quoteClass === 'eth');
+  const stubNonEth = stubsOnly.filter((x) => classifyPair(x.pairToken).quoteClass !== 'eth');
+  // Order: named non-ETH, stub non-ETH (discovery), named ETH fill
+  const capped = dedupe([...namedNonEth, ...stubNonEth, ...namedEth]);
+  let launchesRaw = capped.slice(0, 500);
+
+  // Soft fallback: if API totally failed, keep previous on-disk launches
+  if (launchesRaw.length === 0) {
+    const prev = await loadPreviousLaunches();
+    if (prev.length) {
+      console.warn(`Using previous on-disk launches (${prev.length}) after empty fetch`);
+      launchesRaw = prev.map((x) => ({
+        token: x.token,
+        name: x.name,
+        symbol: x.symbol,
+        description: x.description,
+        logo: x.logo,
+        factory: x.factory,
+        deployer: x.deployer,
+        pool: x.pool,
+        pairToken: x.pairToken,
+        transactionHash: x.transactionHash,
+        blockNumber: x.blockNumber,
+        launchedAt: x.launchedAt,
+        initialBuyWei: x.initialBuyWei,
+        priceUsd: x.priceUsd,
+        marketCapUsd: x.marketCapUsd,
+        liquidityUsd: x.liquidityUsd,
+        graduated: x.graduated,
+        graduationProgressPct: x.graduationProgressPct,
+        pairedPrincipalEth: x.pairedPrincipalEth,
+        graduationThresholdEth: x.graduationThresholdEth,
+        latestBuyAt: x.latestBuyAt,
+      }));
+      errors.push('fallback: previous launches.json');
+    }
+  }
+
   const launches = launchesRaw.map(normalizeLaunch);
 
   const byClass = { eth: 0, usdg: 0, stocks: 0, btc: 0, unknown: 0 };
@@ -235,6 +748,8 @@ async function main() {
 
   const quotes = {
     updatedAt: new Date().toISOString(),
+    source: BITQUERY_PONS_DOCS,
+    expand: quoteExpand,
     registry: Object.entries(QUOTE_REGISTRY).map(([address, meta]) => ({
       address,
       ...meta,
@@ -251,19 +766,49 @@ async function main() {
   const meta = {
     updatedAt: new Date().toISOString(),
     source: {
-      recent: LAUNCHES_URL,
+      recent100: LAUNCHES_LIMIT_100,
+      recent20: LAUNCHES_LIMIT_20,
       historical: HIST_URL,
       rpc: RPC,
+      bitqueryDocs: BITQUERY_PONS_DOCS,
+    },
+    factories: {
+      v1: FACTORY_V1,
+      v2: FACTORY_V2,
+      recentApi: FACTORY_RECENT,
+      tokenLaunchedTopicV2: TOPIC_TOKEN_LAUNCHED_V2,
+      tokenLaunchedTopicRecent: TOPIC_TOKEN_LAUNCHED_V1STYLE,
+      tokenLaunchedSigV2:
+        'TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)',
     },
     counts: {
       launches: launches.length,
-      recentFetched: recent.length,
+      recent100Fetched: recent100.length,
+      recent20Fetched: recent20.length,
       historicalFetched: historical.length,
+      ethGetLogsTokenLaunched: logsInfo.ok ? logsInfo.count : 0,
+      receiptPairTokenEnrich: receiptInfo,
+      stubMetadataHydrate: hydrateInfo,
       byQuoteClass: byClass,
       stockQuoted: byClass.stocks,
       usdgQuoted: byClass.usdg,
+      graduated: launches.filter((x) => x.graduated).length,
     },
     rpc: rpcInfo,
+    ethGetLogs: {
+      ok: logsInfo.ok,
+      count: logsInfo.count ?? 0,
+      fromBlock: logsInfo.fromBlock,
+      toBlock: logsInfo.toBlock,
+      topicV2: logsInfo.topicV2,
+      topicRecent: logsInfo.topicRecent,
+      factories: logsInfo.factories,
+      counts: logsInfo.counts,
+      softErrors: logsInfo.softErrors || [],
+      samples: logsInfo.samples || [],
+      error: logsInfo.error,
+      note: logsInfo.note,
+    },
     errors,
     disclaimer:
       'StockCurve is an independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice.',
@@ -277,8 +822,6 @@ async function main() {
   console.log(JSON.stringify(meta.counts, null, 2));
   if (errors.length) {
     console.warn('Completed with soft errors:', errors);
-    // Soft failure: still exit 0 so Pages can deploy last-good + empty-friendly UI if needed
-    // Hard fail only if we have zero launches
     if (launches.length === 0) process.exit(1);
   }
   console.log('Wrote public/data/*.json');

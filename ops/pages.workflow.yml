@@ -43,6 +43,8 @@ jobs:
           node -e "const d=require('./public/data/launches.json'); if(!d.launches||!Array.isArray(d.launches)) process.exit(1); console.log('launches', d.launches.length)"
 
       - name: Build
+        env:
+          STOCKCURVE_BASE: /stockcurve/
         run: npm run build
 
       - name: Setup Pages
