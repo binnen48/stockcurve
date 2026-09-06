@@ -85,6 +85,8 @@ const S = {
   liveRpcFail: 'Live RPC failing — retrying with backoff. Auto-refresh still tries Pons / RPC backfill.',
   toastDismiss: 'Dismiss',
   fomoTitle: 'New vs stocks',
+  heatTitle: 'Hottest quote stocks',
+  twinLead: 'Similar names vs different stocks',
 };
 
 const state = {
@@ -129,6 +131,9 @@ const LIVE_BACKOFF_CAP = 60_000;
 const BACKFILL_BLOCKS = 3500;
 const BACKFILL_CHUNK = 500;
 const FOMO_WINDOW_MS = 2 * 60 * 60 * 1000;
+const HEAT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const TWIN_WINDOW_MS = 6 * 60 * 60 * 1000;
+const HEAT_TOP_N = 8;
 let knownTokensAtBoot = new Set();
 let feedAbort = null;
 let feedReqId = 0;
@@ -312,6 +317,89 @@ function quoteTickerCounts() {
     m.set(sym, (m.get(sym) || 0) + 1);
   }
   return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+function normalizeStem(s) {
+  return String(s ?? '')
+    .toLowerCase()
+    .replace(/[\$\s]+/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function launchStems(L) {
+  const out = [];
+  const sym = normalizeStem(L?.symbol);
+  const name = normalizeStem(L?.name);
+  if (sym && sym.length >= 2) out.push(sym);
+  if (name && name.length >= 2 && name !== sym) out.push(name);
+  return out;
+}
+
+function stemsSimilar(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const minLen = 5;
+  if (a.length >= minLen && b.length >= minLen && (a.startsWith(b) || b.startsWith(a))) return true;
+  return false;
+}
+
+/** Hottest tokenized stocks used as quote assets — prefer last 24h, else full dataset. */
+function quoteHeatCounts() {
+  const cutoff = Date.now() - HEAT_WINDOW_MS;
+  const recent = [];
+  const all = [];
+  for (const L of state.launches) {
+    if (L.quoteClass !== 'stocks') continue;
+    const sym = (L.quoteSymbol || '').toUpperCase();
+    if (!sym || sym === 'UNK') continue;
+    all.push(sym);
+    const ts = Date.parse(L.launchedAt);
+    if (Number.isFinite(ts) && ts >= cutoff) recent.push(sym);
+  }
+  const pool = recent.length ? recent : all;
+  const m = new Map();
+  for (const sym of pool) m.set(sym, (m.get(sym) || 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+/**
+ * Twin radar: 2+ stock-quoted launches in last 6h with similar name/symbol stem
+ * but different quote stocks. Returns one compact cluster or null.
+ */
+function findTwinCluster() {
+  const cutoff = Date.now() - TWIN_WINDOW_MS;
+  const rows = state.launches
+    .filter((L) => {
+      if (L.quoteClass !== 'stocks') return false;
+      const q = (L.quoteSymbol || '').toUpperCase();
+      if (!q || q === 'UNK') return false;
+      const ts = Date.parse(L.launchedAt);
+      return Number.isFinite(ts) && ts >= cutoff;
+    })
+    .sort((a, b) => (Date.parse(b.launchedAt) || 0) - (Date.parse(a.launchedAt) || 0));
+
+  for (let i = 0; i < rows.length; i++) {
+    const A = rows[i];
+    const stemsA = launchStems(A);
+    if (!stemsA.length) continue;
+    const qa = (A.quoteSymbol || '').toUpperCase();
+    for (let j = i + 1; j < rows.length; j++) {
+      const B = rows[j];
+      const qb = (B.quoteSymbol || '').toUpperCase();
+      if (!qb || qb === qa) continue;
+      const stemsB = launchStems(B);
+      let hit = false;
+      for (const sa of stemsA) {
+        for (const sb of stemsB) {
+          if (stemsSimilar(sa, sb)) { hit = true; break; }
+        }
+        if (hit) break;
+      }
+      if (!hit) continue;
+      return [A, B];
+    }
+  }
+  return null;
 }
 
 function parseHash() {
@@ -586,6 +674,8 @@ function updateFomoStrip() {
     const btn = host.querySelector(`[data-fomo-token="${CSS.escape(focusTok)}"]`);
     btn?.focus();
   }
+  updateTwinAlert();
+  updateQuoteHeat();
 }
 
 function focusFomoLaunch(token, symbol) {
@@ -618,6 +708,68 @@ function bindFomoStrip(scope = document) {
   scope.querySelectorAll('.fomo-item').forEach((btn) => {
     btn.addEventListener('click', () => {
       focusFomoLaunch(btn.dataset.fomoToken || '', btn.dataset.fomoSymbol || '');
+    });
+  });
+}
+
+function renderQuoteHeat() {
+  if (state.filter !== 'stocks') return '';
+  const ticks = quoteHeatCounts().slice(0, HEAT_TOP_N);
+  if (!ticks.length) return '';
+  return `
+    <div class="quote-heat" id="quote-heat" aria-label="${esc(t('heatTitle'))}">
+      <span class="quote-heat-label">${esc(t('heatTitle'))}</span>
+      <span class="quote-heat-items">
+        ${ticks.map(([sym, n], i) => `
+          <button type="button" class="heat-tick ${state.quoteTicker === sym ? 'active' : ''}" data-quote="${esc(sym)}" title="Filter vs ${esc(sym)}">${esc(sym)} ${n}</button>${i < ticks.length - 1 ? '<span class="heat-sep" aria-hidden="true">·</span>' : ''}
+        `).join('')}
+      </span>
+    </div>`;
+}
+
+function renderTwinAlert() {
+  const pair = findTwinCluster();
+  if (!pair) return '';
+  const bits = pair.map((L) => {
+    const sym = displaySymbol(L);
+    const vs = (L.quoteSymbol && L.quoteSymbol !== 'UNK') ? L.quoteSymbol : '?';
+    return `<button type="button" class="twin-item" data-twin-token="${esc(L.token)}" data-twin-symbol="${esc(sym)}" title="Jump to $${esc(sym)}">$${esc(sym)} vs ${esc(vs)}</button>`;
+  });
+  return `
+    <div class="twin-alert" id="twin-alert" role="note">
+      <span class="twin-lead">${esc(t('twinLead'))}:</span>
+      ${bits.join('<span class="twin-sep">,</span>')}
+    </div>`;
+}
+
+function updateTwinAlert() {
+  const host = document.getElementById('twin-alert-host');
+  if (!host) return;
+  host.innerHTML = renderTwinAlert();
+  bindTwinAlert(host);
+}
+
+function updateQuoteHeat() {
+  const host = document.getElementById('quote-heat-host');
+  if (!host) return;
+  host.innerHTML = renderQuoteHeat();
+  bindQuoteHeat(host);
+}
+
+function bindTwinAlert(scope = document) {
+  scope.querySelectorAll('.twin-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      focusFomoLaunch(btn.dataset.twinToken || '', btn.dataset.twinSymbol || '');
+    });
+  });
+}
+
+function bindQuoteHeat(scope = document) {
+  scope.querySelectorAll('.heat-tick').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.quoteTicker = (btn.dataset.quote || '').toUpperCase();
+      if (state.quoteTicker) state.filter = 'stocks';
+      render();
     });
   });
 }
@@ -699,6 +851,7 @@ function render() {
         <main class="panel">
           <div class="panel-bd">
             <div id="fomo-strip-host">${renderFomoStrip()}</div>
+            <div id="twin-alert-host">${renderTwinAlert()}</div>
             <div class="controls">
               <div class="filters" role="tablist" aria-label="Quote class filter">
                 ${filterBtns.map(([f, label, tip]) => `
@@ -706,6 +859,7 @@ function render() {
                     ${esc(label)}
                   </button>`).join('')}
               </div>
+              <div id="quote-heat-host">${renderQuoteHeat()}</div>
               ${renderQuoteChips()}
               <div class="row2">
                 <input type="search" id="q" placeholder="${esc(t('searchPh'))}" value="${esc(state.q)}" autocomplete="off" />
@@ -926,6 +1080,8 @@ function bindUi(app) {
 
   bindListActions(app);
   bindFomoStrip(app);
+  bindTwinAlert(app);
+  bindQuoteHeat(app);
 }
 
 function classifyPair(pairToken) {

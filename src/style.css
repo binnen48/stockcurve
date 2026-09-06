@@ -639,3 +639,83 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
   border-color: rgba(251, 191, 36, 0.55);
 }
 #fomo-strip-host:empty { display: none; }
+
+
+/* Quote heat + Twin radar (minimal) */
+.quote-heat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  margin: 2px 0 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.quote-heat-label {
+  color: var(--stocks);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.quote-heat-label::after { content: ":"; margin-right: 2px; }
+.quote-heat-items {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+}
+.heat-tick {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.heat-tick:hover { color: var(--stocks); background: rgba(251,191,36,.08); }
+.heat-tick.active {
+  color: #1a1200;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  font-weight: 600;
+}
+.heat-sep { color: var(--muted); opacity: .55; margin: 0 2px; user-select: none; }
+
+.twin-alert {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 114, 182, 0.28);
+  border-radius: 8px;
+  background: rgba(244, 114, 182, 0.06);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+}
+.twin-lead { color: #f9a8d4; font-weight: 600; }
+.twin-sep { color: var(--muted); opacity: .7; }
+.twin-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(244, 114, 182, 0.45);
+  text-underline-offset: 2px;
+}
+.twin-item:hover { color: #f9a8d4; }
+#twin-alert-host:empty,
+#quote-heat-host:empty { display: none; }
+@media (max-width: 640px) {
+  .quote-heat, .twin-alert { font-size: 0.7rem; }
+}
