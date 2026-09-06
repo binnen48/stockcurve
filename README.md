@@ -1,6 +1,6 @@
 # StockCurve
 
-**Live:** https://stockcurve.github.io/
+**Live:** https://stockcurve.github.io/app/
 
 Org: https://github.com/stockcurve · Source: https://github.com/stockcurve/stockcurve.github.io
 
@@ -35,5 +35,5 @@ Independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. N
 
 ## Vite base
 
-Default build base is / for https://stockcurve.github.io/
+Default build base is / for https://stockcurve.github.io/app/
 Legacy mirror: https://binnen48.github.io/stockcurve/
