@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T01:21:25.273Z",
+  "updatedAt": "2026-09-06T01:29:21Z",
   "source": {
     "recent100": "https://www.ponsfamily.com/api/pons-launches?limit=100",
     "recent20": "https://www.ponsfamily.com/api/pons-launches?limit=20",
@@ -31,11 +31,9 @@
       "attempted": 50
     },
     "byQuoteClass": {
-      "eth": 420,
       "usdg": 36,
-      "stocks": 38,
-      "btc": 0,
-      "unknown": 6
+      "stocks": 44,
+      "eth": 420
     },
     "stockQuoted": 38,
     "usdgQuoted": 36,

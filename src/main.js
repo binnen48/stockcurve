@@ -20,7 +20,7 @@ const WETH = '0x0bd7d308f8e1639fab988df18a8011f41eacad73';
 
 const S = {
   tagline:
-    'Radar for <strong style="color:var(--text)">Pons</strong> memecoin launches on Robinhood Chain — filter by quote asset: tokenized stocks (RWA), USDG, or ETH.',
+    'Tracks new Pons memecoin launches on Robinhood Chain and shows what they are quoted against — tokenized stocks (NVDA, TSLA, …), USDG, or ETH.',
   live: 'Live',
   updated: 'Updated',
   launches: 'Launches',
@@ -34,7 +34,7 @@ const S = {
   refresh: 'Refresh',
   refreshing: 'Refreshing…',
   shown: 'shown',
-  searchPh: 'Search name, ticker, address, quote…  (/)',
+  searchPh: 'Search name, $SYMBOL, or address…  (/)',
   newest: 'Newest',
   mcap: 'Market cap',
   graduation: 'Graduation',
@@ -45,19 +45,19 @@ const S = {
   graduated: 'Graduated',
   newestAge: 'Newest launch',
   loading: 'Loading launch radar…',
-  emptyAll: 'No launches match this filter yet.',
+  emptyAll: 'No launches match this filter yet. Try All or clear search.',
   emptyStocks:
-    'No stock-quoted launches in the current dataset yet. The RWA quote registry is ready — StockCurve is waiting for Pons launches quoted against tokenized stocks (NVDA, TSLA, SPY, …). Switch to All / USDG / ETH meanwhile.',
-  emptyWatch: 'No starred tokens yet. Tap ★ on a card to build your watchlist.',
-  emptySearch: 'No launches match your search.',
-  safeLinks: 'Safe Links',
+    'No launches quoted against tokenized stocks yet. Switch to All, USDG, or ETH to browse other launches.',
+  emptyWatch: 'No starred tokens yet. Tap ★ on a card to save it here.',
+  emptySearch: 'Nothing matched that search. Try another name, ticker, or address.',
+  safeLinks: 'Official links',
   whyTitle: 'Why StockCurve?',
   whyBody:
     'Most Pons tools track $PONS burns. StockCurve watches <strong style="color:var(--text)">which asset a launch is quoted against</strong> — NVDA/TSLA/… tokenized stocks, USDG, or ETH — so RWA-quote discovery is one filter away.',
   whyBody2:
     'Public static JSON under <code>/feed/</code>. No login. No API keys. Browser auto-refresh every 90s; server feed refresh about every 15 minutes. Live mode polls Robinhood Chain RPC for TokenLaunched events.',
   disclaimer:
-    '<strong>Disclaimer:</strong> StockCurve is an independent, free community tool. It is <em>not</em> affiliated with Robinhood, Pons Labs, FOMO, or any token issuer. Nothing here is financial, investment, or trading advice. Memecoins and tokenized assets are highly risky — do your own research and verify every URL.',
+    '<strong>Disclaimer:</strong> Independent community tool — not affiliated with Robinhood or Pons. Not financial advice. DYOR.',
   footer: 'StockCurve · Robinhood Chain (4663)',
   github: 'GitHub',
   data: 'Data',
@@ -72,7 +72,7 @@ const S = {
   mcapLabel: 'Mcap',
   priceLabel: 'Price',
   launchedLabel: 'Launched',
-  safeFallback: 'Only use official links. Lookalikes are phishing.',
+  safeFallback: 'Use only these official links — lookalikes are often phishing.',
   safeUnavailable: 'Safe links unavailable.',
   onCurve: 'On curve only',
   topDeployers: 'Top deployers',
@@ -83,7 +83,7 @@ const S = {
   swarm: 'swarm',
   scanning: 'scanning',
   lastEvent: 'last event',
-  liveOff: 'Feed only',
+  liveOff: 'Feed only · Live off',
   liveRpcFail: 'Live RPC failing — retrying with backoff. Feed refresh still works.',
   toastDismiss: 'Dismiss',
 };
@@ -245,6 +245,35 @@ function shortAddr(a) {
   const s = String(a);
   return `${s.slice(0, 6)}…${s.slice(-4)}`;
 }
+
+function displayName(L) {
+  const n = L?.name;
+  if (n && n !== 'Unknown' && String(n).trim()) return n;
+  const tok = L?.token;
+  return tok ? `Token ${shortAddr(tok)}` : 'Token';
+}
+
+function displaySymbol(L) {
+  const s = L?.symbol;
+  if (s && s !== '???' && s !== 'UNK' && String(s).trim()) return s;
+  const tok = L?.token;
+  return tok ? shortAddr(tok) : '—';
+}
+
+function quoteBadgeLabel(L) {
+  const cls = L?.quoteClass;
+  const sym = L?.quoteSymbol;
+  const known = ['stocks', 'usdg', 'eth', 'btc'].includes(cls);
+  if (known && sym && sym !== 'UNK') {
+    if (cls === 'usdg') return 'vs USDG';
+    return `vs ${sym}`;
+  }
+  const pair = L?.pairToken;
+  if (pair) return `vs ${shortAddr(pair)}`;
+  if (sym && sym !== 'UNK') return `vs ${sym}`;
+  return 'vs quote';
+}
+
 
 function ponsUrlFor(token) {
   if (!token) return 'https://www.ponsfamily.com/';
@@ -418,17 +447,14 @@ function progressBar(L) {
   if (L.graduated) {
     return `<div class="grad-bar done" title="100%"><div class="grad-fill" style="width:100%"></div><span>100%</span></div>`;
   }
+  if (L.graduationProgressPct == null && !L.pairedPrincipalEth) return '';
   const pct = Math.max(0, Math.min(100, Number(L.graduationProgressPct) || 0));
-  const vel = graduationVelocity(L);
-  if (L.graduationProgressPct == null && !L.pairedPrincipalEth) {
-    return `<div class="grad-bar unknown" title="—"><div class="grad-fill" style="width:0%"></div><span>— ${t('curve')}</span></div>`;
-  }
-  return `<div class="grad-bar" title="${pct.toFixed(1)}%${vel ? ` · ${vel}` : ''}"><div class="grad-fill" style="width:${pct}%"></div><span>${pct.toFixed(1)}%${vel ? ` · ${esc(vel)}` : ''}</span></div>`;
+  return `<div class="grad-bar" title="${pct.toFixed(1)}%"><div class="grad-fill" style="width:${pct}%"></div><span>${pct.toFixed(0)}%</span></div>`;
 }
 
 function renderCard(L, depCounts) {
   const badgeClass = ['stocks', 'usdg', 'eth', 'btc'].includes(L.quoteClass) ? L.quoteClass : 'unknown';
-  const initials = esc((L.symbol || '?').slice(0, 2));
+  const initials = esc((displaySymbol(L) || '?').slice(0, 2).replace('…', '?'));
   const tok = (L.token || '').toLowerCase();
   const starred = state.watchlist.has(tok);
   const isNew = isNewSinceVisit(L);
@@ -437,13 +463,14 @@ function renderCard(L, depCounts) {
   const depN = depCounts.get(dep.toLowerCase()) || 0;
   const swarm = depN >= 3;
   const avatar = L.logoUrl
-    ? `<img class="avatar" src="${esc(L.logoUrl)}" alt="" loading="lazy" data-ph="${initials}" onerror="this.outerHTML='<div class=\\'avatar ph\\'>'+this.dataset.ph+'</div>'" />`
+    ? `<img class="avatar" src="${esc(L.logoUrl)}" alt="" loading="lazy" data-ph="${initials}" onerror="this.outerHTML='<div class=\'avatar ph\'>'+this.dataset.ph+'</div>'" />`
     : `<div class="avatar ph">${initials}</div>`;
-  const gradBadge = L.graduated
-    ? `<span class="badge grad">${esc(t('graduated'))}</span>`
-    : '';
   const pons = L.ponsUrl || ponsUrlFor(L.token);
   const age = relative(L.launchedAt);
+  const desc = (L.description || '').trim();
+  const descHtml = desc
+    ? `<details class="desc-fold"><summary>About</summary><div class="desc">${esc(desc)}</div></details>`
+    : '';
 
   return `
     <article class="card ${isNew ? 'is-new' : ''} ${isLiveFlash ? 'is-live-flash' : ''} ${badgeClass === 'stocks' ? 'is-stock' : ''}" data-token="${esc(L.token)}">
@@ -454,36 +481,26 @@ function renderCard(L, depCounts) {
             <button type="button" class="star-btn ${starred ? 'on' : ''}" data-star="${esc(L.token)}" aria-label="Watchlist" title="Watchlist">★</button>
             <div>
               <div class="title-row">
-                <span class="title">${esc(L.name)}</span>
+                <span class="title">${esc(displayName(L))}</span>
                 ${isLiveFlash ? `<span class="badge live">${esc(t('liveBadge'))}</span>` : ''}
                 ${isNew && !isLiveFlash ? `<span class="badge new">${esc(t('newBadge'))}</span>` : ''}
                 ${swarm ? `<span class="badge swarm" title="${depN} launches by this deployer">${esc(t('swarm'))} ×${depN}</span>` : ''}
+                ${L.graduated ? `<span class="badge grad">${esc(t('graduated'))}</span>` : ''}
               </div>
-              <div class="sym">$${esc(L.symbol)} · ${esc(age)}</div>
+              <div class="sym">$${esc(displaySymbol(L))} · ${esc(age)}</div>
             </div>
           </div>
           <div class="badges">
-            <span class="badge ${badgeClass}">${esc(L.quoteSymbol)} · ${esc(L.quoteClass)}</span>
-            ${gradBadge}
+            <span class="badge ${badgeClass}">${esc(quoteBadgeLabel(L))}</span>
           </div>
         </div>
         ${progressBar(L)}
         <div class="metrics">
           <span>${esc(t('mcapLabel'))} <strong>${fmtUsd(L.marketCapUsd)}</strong></span>
-          <span>${esc(t('priceLabel'))} <strong>${fmtUsd(L.priceUsd)}</strong></span>
-          <span>${esc(t('launchedLabel'))} <strong>${esc(fmtTime(L.launchedAt))}</strong></span>
         </div>
-        <div class="deployer-row">
-          <span class="muted-label">${esc(t('deployer'))}</span>
-          ${dep
-            ? `<a class="chip-link deployer" href="https://robinhoodchain.blockscout.com/address/${esc(dep)}" target="_blank" rel="noopener noreferrer">${esc(shortAddr(dep))}</a>
-               <span class="dep-count" title="Launches by this deployer in current dataset">×${depN}</span>`
-            : '<span>—</span>'}
-        </div>
-        ${L.description ? `<div class="desc">${esc(L.description)}</div>` : ''}
+        ${descHtml}
         <div class="links">
           ${L.explorerTokenUrl ? `<a class="chip-link" href="${esc(L.explorerTokenUrl)}" target="_blank" rel="noopener noreferrer">${esc(t('explorer'))}</a>` : ''}
-          ${L.explorerTxUrl ? `<a class="chip-link" href="${esc(L.explorerTxUrl)}" target="_blank" rel="noopener noreferrer">${esc(t('launchTx'))}</a>` : ''}
           <a class="chip-link" href="${esc(pons)}" target="_blank" rel="noopener noreferrer">Pons</a>
           <button type="button" class="chip-link copy-btn" data-copy="${esc(L.token)}">${esc(t('copy'))} ${esc(shortAddr(L.token))}</button>
         </div>
@@ -508,17 +525,15 @@ function liveStatusLabel() {
   if (!state.live) return t('liveOff');
   const b = state.liveStatus.block;
   const last = state.liveStatus.lastEventAt;
-  const parts = [t('live')];
-  if (document.hidden) parts.push('paused');
-  else if (b != null) parts.push(`block #${b}`);
-  else if (state.liveStatus.scanning) parts.push(t('scanning'));
-  if (last) parts.push(`${t('lastEvent')} ${relative(last)}`);
-  else if (state.liveStatus.lastError) {
-    parts.push(state.liveStatus.failCount >= LIVE_FAIL_TOAST_AFTER ? 'RPC errors' : 'retrying');
-  }
+  if (document.hidden) return 'Live · paused';
+  if (state.liveStatus.scanning) return b != null ? `Live · scanning · block ${b}` : 'Live · scanning';
+  if (state.liveStatus.failCount >= 3) return 'Live · RPC issues';
+  const parts = ['Live'];
+  if (b != null) parts.push(`block ${b}`);
+  if (last) parts.push(`event ${relative(last)}`);
+  else parts.push('watching');
   return parts.join(' · ');
 }
-
 function renderQuoteMix() {
   const mix = quoteMix();
   if (!mix.length) return '';
@@ -580,25 +595,27 @@ function renderListArea(rows, c, depCounts) {
 function render() {
   const app = $('#app');
   const c = counts();
-  const stats = stripStats();
   const rows = filtered();
   const depCounts = deployerCounts();
-  const by = state.meta?.counts?.byQuoteClass || {};
   document.documentElement.lang = 'en';
 
   const filterBtns = [
-    ['all', `${t('all')} (${c.all})`],
-    ['stocks', `${t('stocks')} (${c.stocks})`],
-    ['usdg', `${t('usdg')} (${c.usdg})`],
-    ['eth', `${t('eth')} (${c.eth})`],
+    ['all', `${t('all')} (${c.all})`, 'Show every launch'],
+    ['stocks', `${t('stocks')} (${c.stocks})`, 'Quoted against tokenized stocks (NVDA, TSLA, …)'],
+    ['usdg', `${t('usdg')} (${c.usdg})`, 'Quoted against USDG stablecoin'],
+    ['eth', `${t('eth')} (${c.eth})`, 'Quoted against ETH / WETH'],
+    ['watch', `★ ${t('watchlist')} (${c.watch})`, 'Your starred tokens'],
   ];
-  if (c.btc > 0) filterBtns.push(['btc', `${t('btc')} (${c.btc})`]);
-  if (c.unknown > 0) filterBtns.push(['unknown', `${t('unknown')} (${c.unknown})`]);
-  filterBtns.push(['watch', `★ ${t('watchlist')} (${c.watch})`]);
+  // Hide Unknown / BTC filter tabs — still classify internally.
+  if (state.filter === 'unknown' || state.filter === 'btc') state.filter = 'all';
 
   const notifyLabel = state.notifyStocks
     ? (Notification?.permission === 'denied' ? t('notifyDenied') : t('notifyOn'))
     : t('notifyBtn');
+
+  const statusPill = state.live
+    ? `<span class="pill live on ${state.pulse ? 'pulse' : ''}" id="live-status"><span class="dot"></span> ${esc(liveStatusLabel())}</span>`
+    : `<span class="pill" id="live-status">${esc(t('updated'))} <strong id="upd-clock">${esc(updatedClockLabel())}</strong></span>`;
 
   app.innerHTML = `
     <div class="app">
@@ -620,35 +637,20 @@ function render() {
           </div>
         </div>
         <div class="meta-bar">
-          <span class="pill live ${state.live ? 'on' : ''} ${state.pulse ? 'pulse' : ''}" id="live-status"><span class="dot"></span> ${esc(liveStatusLabel())}</span>
-          <span class="pill">${esc(t('updated'))} <strong id="upd-clock">${esc(updatedClockLabel())}</strong></span>
-          <span class="pill">${esc(t('launches'))} <strong>${c.all}</strong></span>
-          <span class="pill stocks-pill">${esc(t('stocks'))} <strong>${by.stocks ?? c.stocks}</strong></span>
-          <span class="pill">${esc(t('usdg'))} <strong>${by.usdg ?? c.usdg}</strong></span>
-          <span class="pill">${esc(t('eth'))} <strong>${by.eth ?? c.eth}</strong></span>
+          ${statusPill}
+          <span class="pill">${rows.length} ${esc(t('shown'))}</span>
         </div>
-        ${renderQuoteMix()}
       </header>
 
-      <div class="layout">
+      <div class="layout layout-minimal">
         <main class="panel">
-          <div class="panel-hd">
-            <h2>${esc(t('launches'))}</h2>
-            <span class="pill">${rows.length} ${esc(t('shown'))}</span>
-          </div>
           <div class="panel-bd">
             <div class="controls">
               <div class="filters" role="tablist" aria-label="Quote class filter">
-                ${filterBtns.map(([f, label]) => `
-                  <button type="button" class="filter-btn ${state.filter === f ? 'active' : ''}" data-f="${f}">
+                ${filterBtns.map(([f, label, tip]) => `
+                  <button type="button" class="filter-btn ${state.filter === f ? 'active' : ''}" data-f="${f}" title="${esc(tip || '')}">
                     ${esc(label)}
                   </button>`).join('')}
-              </div>
-              <div class="extra-filters">
-                <label class="toggle-curve">
-                  <input type="checkbox" id="curve-only" ${state.onCurveOnly ? 'checked' : ''} />
-                  <span>${esc(t('onCurve'))}</span>
-                </label>
               </div>
               ${renderQuoteChips()}
               <div class="row2">
@@ -661,40 +663,19 @@ function render() {
               </div>
             </div>
 
-            <div class="stats">
-              <div class="stat"><div class="k">${esc(t('visible'))}</div><div class="v">${rows.length}</div></div>
-              <div class="stat stock-stat"><div class="k">${esc(t('stockQuoted'))}</div><div class="v">${c.stocks}</div></div>
-              <div class="stat"><div class="k">${esc(t('usdgQuoted'))}</div><div class="v" style="color:var(--usdg)">${c.usdg}</div></div>
-              <div class="stat"><div class="k">${esc(t('ethQuoted'))}</div><div class="v" style="color:var(--eth)">${c.eth}</div></div>
-              <div class="stat"><div class="k">${esc(t('graduated'))}</div><div class="v" style="color:var(--ok)">${stats.graduated}</div></div>
-              <div class="stat"><div class="k">${esc(t('newestAge'))}</div><div class="v age">${esc(stats.newestAge)}</div></div>
-            </div>
-
             <div id="results-root">${renderListArea(rows, c, depCounts)}</div>
           </div>
         </main>
 
-        <aside class="side">
+        <aside class="side side-minimal">
           <div class="panel">
             <div class="panel-hd"><h2>${esc(t('safeLinks'))}</h2></div>
             <div class="panel-bd">
               <div class="warn">${esc(state.safe?.warning || t('safeFallback'))}</div>
+              <ul class="safe-list">
               ${(state.safe?.links || []).map((L) => `
-                <div class="item">
-                  <h3>${esc(L.name)}</h3>
-                  <p>${esc(L.blurb)}</p>
-                  <a href="${esc(L.url)}" target="_blank" rel="noopener noreferrer">${esc(L.url.replace(/^https?:\/\//, ''))}</a>
-                </div>`).join('') || `<p class="empty">${esc(t('safeUnavailable'))}</p>`}
-            </div>
-          </div>
-
-          ${renderTopDeployers()}
-
-          <div class="panel" style="margin-top:14px">
-            <div class="panel-hd"><h2>${esc(t('whyTitle'))}</h2></div>
-            <div class="panel-bd why">
-              <p style="margin-top:0">${t('whyBody')}</p>
-              <p>${t('whyBody2')}</p>
+                <li><a href="${esc(L.url)}" target="_blank" rel="noopener noreferrer">${esc(L.name)}</a></li>`).join('') || `<li class="empty">${esc(t('safeUnavailable'))}</li>`}
+              </ul>
             </div>
           </div>
         </aside>
@@ -713,6 +694,8 @@ function render() {
 
   bindUi(app);
   writeHash();
+  // Toast lives on document.body only — never inside #app flow
+  renderToast();
 
   if (searchFocusRestore != null) {
     const nq = $('#q');
@@ -726,22 +709,11 @@ function render() {
 
 function updateResultsOnly() {
   const root = $('#results-root');
-  const statsEl = document.querySelectorAll('.stats .stat .v');
   const c = counts();
-  const stats = stripStats();
   const rows = filtered();
   const depCounts = deployerCounts();
   if (root) root.innerHTML = renderListArea(rows, c, depCounts);
-  // light stats update
-  if (statsEl.length >= 6) {
-    statsEl[0].textContent = String(rows.length);
-    statsEl[1].textContent = String(c.stocks);
-    statsEl[2].textContent = String(c.usdg);
-    statsEl[3].textContent = String(c.eth);
-    statsEl[4].textContent = String(stats.graduated);
-    statsEl[5].textContent = stats.newestAge;
-  }
-  const shown = document.querySelector('.panel-hd .pill');
+  const shown = document.querySelector('.meta-bar .pill:last-child');
   if (shown) shown.textContent = `${rows.length} ${t('shown')}`;
   bindListActions(document);
   writeHash();
@@ -962,6 +934,7 @@ async function rpc(method, params = []) {
 }
 
 function enrichLaunchRow(raw) {
+  // Always reclassify from live registry (overwrite baked UNK/unknown when registry has a hit).
   const q = classifyPair(raw.pairToken);
   const logo = raw.logo || null;
   let logoUrl = raw.logoUrl || null;
@@ -969,10 +942,14 @@ function enrichLaunchRow(raw) {
     if (logo.startsWith('ipfs://')) logoUrl = `https://ipfs.io/ipfs/${logo.slice(7)}`;
     else if (logo.startsWith('http')) logoUrl = logo;
   }
+  let name = raw.name || '';
+  let symbol = raw.symbol || '';
+  if (!name || name === 'Unknown') name = raw.token ? `Token ${shortAddr(raw.token)}` : 'Token';
+  if (!symbol || symbol === '???' || symbol === 'UNK') symbol = raw.token ? shortAddr(raw.token) : '—';
   return {
     token: raw.token,
-    name: raw.name || 'Unknown',
-    symbol: raw.symbol || '???',
+    name,
+    symbol,
     description: raw.description || '',
     logo,
     logoUrl,
@@ -1023,11 +1000,17 @@ function mergeLaunches(incoming, { flash = false, notify = false } = {}) {
       map.set(key, {
         ...prev,
         ...Object.fromEntries(Object.entries(row).filter(([, v]) => v != null && v !== '')),
-        name: row.name !== 'Unknown' ? row.name : prev.name,
-        symbol: row.symbol !== '???' ? row.symbol : prev.symbol,
+        name: (!row.name || row.name === 'Unknown' || String(row.name).startsWith('Token '))
+          ? ((prev.name && prev.name !== 'Unknown') ? prev.name : row.name)
+          : row.name,
+        symbol: (!row.symbol || row.symbol === '???' || row.symbol === 'UNK')
+          ? ((prev.symbol && prev.symbol !== '???') ? prev.symbol : row.symbol)
+          : row.symbol,
         launchedAt: row.launchedAt || prev.launchedAt,
-        quoteClass: row.quoteClass !== 'unknown' ? row.quoteClass : prev.quoteClass,
-        quoteSymbol: row.quoteSymbol !== 'UNK' ? row.quoteSymbol : prev.quoteSymbol,
+        // Prefer freshly classified quote when registry has a hit
+        quoteClass: row.quoteClass !== 'unknown' ? row.quoteClass : (prev.quoteClass || row.quoteClass),
+        quoteSymbol: row.quoteSymbol !== 'UNK' ? row.quoteSymbol : (prev.quoteSymbol || row.quoteSymbol),
+        quoteName: row.quoteClass !== 'unknown' ? row.quoteName : (prev.quoteName || row.quoteName),
         _live: prev._live || row._live,
       });
     }
@@ -1057,9 +1040,17 @@ function applyFeedLaunches(list) {
   const map = new Map(feedRows.map((x) => [(x.token || '').toLowerCase(), x]));
   for (const L of liveOnly) {
     const k = (L.token || '').toLowerCase();
-    if (!map.has(k)) map.set(k, L);
+    if (!map.has(k)) {
+      // Reclassify live-only rows against current registry
+      const q = classifyPair(L.pairToken);
+      map.set(k, { ...L, ...q });
+    }
   }
-  state.launches = capLaunches([...map.values()]);
+  state.launches = capLaunches([...map.values()].map((row) => {
+    const q = classifyPair(row.pairToken);
+    if (q.quoteClass === 'unknown' && q.quoteSymbol === 'UNK') return row;
+    return { ...row, ...q };
+  }));
   knownTokensAtBoot = new Set(
     [...feedKeys, ...liveOnly.map((x) => (x.token || '').toLowerCase())].filter(Boolean),
   );
@@ -1240,15 +1231,39 @@ function ingestQuotes(doc) {
   reg[ZERO] = reg[ZERO] || { symbol: 'ETH', class: 'eth', name: 'Native ETH', decimals: 18 };
   reg[WETH] = reg[WETH] || { symbol: 'WETH', class: 'eth', name: 'Wrapped ETH', decimals: 18 };
   state.quotesRegistry = reg;
+  // Reclassify every launch once quotes.json is loaded (overwrite baked UNK/unknown).
+  if (state.launches?.length) {
+    state.launches = state.launches.map((row) => {
+      const q = classifyPair(row.pairToken);
+      if (q.quoteSymbol === 'UNK' && q.quoteClass === 'unknown') return row;
+      return {
+        ...row,
+        quoteSymbol: q.quoteSymbol,
+        quoteClass: q.quoteClass,
+        quoteName: q.quoteName,
+        quoteDecimals: q.quoteDecimals,
+      };
+    });
+  }
 }
 
 function maybeDefaultStocks() {
   if (state.defaultedStocks || state.hashHadFilter) return;
   const c = counts();
-  if (c.stocks > 0) {
-    state.filter = 'stocks';
+  if (c.stocks <= 0) {
     state.defaultedStocks = true;
+    return;
   }
+  const stockRows = state.launches.filter((x) => x.quoteClass === 'stocks');
+  const realNamed = stockRows.filter((x) => {
+    const n = x.name || '';
+    const s = x.symbol || '';
+    return n && n !== 'Unknown' && !String(n).startsWith('Token ') && s && s !== '???' && s !== 'UNK';
+  }).length;
+  const majorityReal = stockRows.length > 0 && realNamed / stockRows.length >= 0.5;
+  if (majorityReal) state.filter = 'stocks';
+  // else keep All — avoid landing on a filter that looks broken/empty
+  state.defaultedStocks = true;
 }
 
 async function refreshData(manual = false) {

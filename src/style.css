@@ -22,9 +22,17 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  overflow-x: clip;
+}
 body {
-  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  overflow-x: clip;
   color: var(--text);
   font-family: var(--font-mono);
   background:
@@ -40,10 +48,10 @@ a:hover { text-decoration: underline; }
 .app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 18px 12px 64px;
+  padding: 18px 12px 28px;
 }
 @media (min-width: 640px) {
-  .app { padding: 28px 18px 80px; }
+  .app { padding: 28px 18px 36px; }
 }
 
 .hero {
@@ -534,6 +542,7 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 }
 .sc-toast{
   position:fixed;z-index:9999;left:50%;bottom:18px;transform:translateX(-50%);
+  pointer-events:auto;
   max-width:min(520px,92vw);display:flex;align-items:flex-start;gap:10px;
   padding:10px 12px;border-radius:12px;border:1px solid rgba(251,113,133,.45);
   background:rgba(20,10,14,.94);color:var(--text);box-shadow:var(--shadow);
@@ -549,3 +558,19 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 .top-deps li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem}
 .grad-bar span{font-size:.65rem;white-space:nowrap}
 @media (max-width:640px){.hero-actions{width:100%;margin-left:0;flex-wrap:wrap}}
+
+
+/* Minimal clarity */
+.layout-minimal { align-items: start; }
+.side-minimal .safe-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.side-minimal .safe-list a { font-size: .78rem; font-weight: 600; }
+.desc-fold { margin-top: 6px; color: var(--muted); font-size: .72rem; }
+.desc-fold summary { cursor: pointer; color: var(--accent2); }
+.card .title { font-size: 1.05rem; }
+@media (min-width: 640px) { .card .title { font-size: 1.12rem; } }
+.card .sym { opacity: .85; }
+.card .badges { max-width: 42%; justify-content: flex-end; }
+.card .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.meta-bar .pill { font-size: .74rem; }
+.disclaimer { margin-top: 14px; font-size: .68rem; }
+.filter-btn { min-height: 34px; }

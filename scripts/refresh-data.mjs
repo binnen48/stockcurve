@@ -77,6 +77,169 @@ const QUOTE_REGISTRY = {
   '0x5e81213613b6b86eab4c6c50d718d34359459786': { symbol: 'TTWO', class: 'stocks', name: 'Take-Two', decimals: 18 },
   '0xa30fa36db767ad9ed3f7a60fc79526fb4d56d344': { symbol: 'USO', class: 'stocks', name: 'US Oil Fund', decimals: 18 },
   '0x9e7abd3c9139d14e4c86dce0e455aab7a0c2fb3e': { symbol: 'WYFI', class: 'stocks', name: 'WYFI', decimals: 18 },
+  // Expanded from o1 Robinhood stock catalog (2026-09)
+  '0x521cf887e6531c6f667b5bc4d896e5d9bfe8eb2e': { symbol: 'AAOI', class: 'stocks', name: 'Applied Optoelectronics', decimals: 18 },
+  '0x3139d77ace0cbaa5bdfd38bd1f1911a794af0b0e': { symbol: 'ABCL', class: 'stocks', name: 'Abcellera Biologics', decimals: 18 },
+  '0x232b8ed6377be97813853b0ac104c4cda8378d1b': { symbol: 'ADBE', class: 'stocks', name: 'Adobe', decimals: 18 },
+  '0x5f604fba1162193a4388a5dfa56f556f3e133cc2': { symbol: 'AEHR', class: 'stocks', name: 'Aehr', decimals: 18 },
+  '0xfaf9cb261b5fcc1f404bb10cd39c5c6c1974e612': { symbol: 'AEIS', class: 'stocks', name: 'Advanced Energy', decimals: 18 },
+  '0x748c32c3ca24edf31ea597db1f3d330a7a6da3dc': { symbol: 'ALAB', class: 'stocks', name: 'Astera Labs, Inc.', decimals: 18 },
+  '0x36046893810a7e7fce501229d57dc3fc8c8716d0': { symbol: 'AMAT', class: 'stocks', name: 'Applied Materials', decimals: 18 },
+  '0x99d9d8663545151603863c5acbd6fc3218899009': { symbol: 'AMBA', class: 'stocks', name: 'Ambarella', decimals: 18 },
+  '0x05a3d1cd21d0c88145e82600e62e7e496e0f222b': { symbol: 'AMC', class: 'stocks', name: 'AMC Entertainment', decimals: 18 },
+  '0xdd356aa38f40a7b7076755ac854b6fbb1f0d305b': { symbol: 'AMKR', class: 'stocks', name: 'Amkor Technology', decimals: 18 },
+  '0x28babd556b60e53663b8615036479a29c2cdd1bf': { symbol: 'ANET', class: 'stocks', name: 'Arista', decimals: 18 },
+  '0xb8dbf92f9741c9ac1c32115e78581f23509916fd': { symbol: 'APLD', class: 'stocks', name: 'Applied Digital', decimals: 18 },
+  '0xa249baf1063af884807c1e1400aef7784836917e': { symbol: 'APP', class: 'stocks', name: 'AppLovin', decimals: 18 },
+  '0x47f93d52cbec7c6d2cfc080e154002370a60daea': { symbol: 'ASML', class: 'stocks', name: 'ASML Holding NV', decimals: 18 },
+  '0x1af6446f07eb1d97c546afc8c9544cbdf3ad5137': { symbol: 'ASTS', class: 'stocks', name: 'AST SpaceMobile', decimals: 18 },
+  '0x373c06c4f7bde527d7dae4ba169e42b55e393ced': { symbol: 'AUR', class: 'stocks', name: 'Aurora Innovation', decimals: 18 },
+  '0xf6290b5e7c26502e2da514c31509849718ea76a5': { symbol: 'AVAV', class: 'stocks', name: 'AeroVironment', decimals: 18 },
+  '0x156e175dd063a8ce274c50654ef40e0032b3fbcf': { symbol: 'AVGO', class: 'stocks', name: 'Broadcom', decimals: 18 },
+  '0xc27dbd474af5181c5a8777903690d8d262d12648': { symbol: 'AXON', class: 'stocks', name: 'Axon', decimals: 18 },
+  '0x141eea040c2250eec0314e336975e81f85f6585e': { symbol: 'AXTI', class: 'stocks', name: 'AXT', decimals: 18 },
+  '0x4d21483a44bf67a86b77e3da301411880797d452': { symbol: 'BA', class: 'stocks', name: 'Boeing', decimals: 18 },
+  '0xad25ac6c84d497db898fa1e8387bf6af3532a1c4': { symbol: 'BABA', class: 'stocks', name: 'Alibaba', decimals: 18 },
+  '0x822cc93ffd030293e9842c30bbd678f530701867': { symbol: 'BE', class: 'stocks', name: 'Bloom Energy', decimals: 18 },
+  '0x2f62fc9fabb470c690f141c28340ed832bb27020': { symbol: 'BND', class: 'stocks', name: 'Vanguard Total Bond Market ETF', decimals: 18 },
+  '0xcef9027c7d6985b85f0ba431125073529a947a68': { symbol: 'BULL', class: 'stocks', name: 'Webull', decimals: 18 },
+  '0x5c90450bbb4273d7b2f17cf6917aeb237a569679': { symbol: 'CBRS', class: 'stocks', name: 'Cerebras Systems', decimals: 18 },
+  '0x9651342cea770ae9a2969ba2a52611523146aef9': { symbol: 'CCL', class: 'stocks', name: 'Carnival Corporation', decimals: 18 },
+  '0xae517a2903e68bd929dfd15be875f8369d53e94a': { symbol: 'CEG', class: 'stocks', name: 'Constellation Energy', decimals: 18 },
+  '0x8cf07c5a878945185d327aaa6e33faa95f95e7bf': { symbol: 'CELH', class: 'stocks', name: 'Celsius', decimals: 18 },
+  '0x44f6d488021f8233b9416294d1fe9b1fee28382d': { symbol: 'CIEN', class: 'stocks', name: 'Ciena', decimals: 18 },
+  '0x62200915e7deab1ec7f79fb246dadbb80eacddd0': { symbol: 'CLOV', class: 'stocks', name: 'Clover Health Investments', decimals: 18 },
+  '0xbf449977089c718c004a66c554b26b94ef3ad4de': { symbol: 'CLS', class: 'stocks', name: 'Celestica', decimals: 18 },
+  '0xcbb95bbf36099d34da091dc6fa6f49efa257cee3': { symbol: 'CLSK', class: 'stocks', name: 'CleanSpark', decimals: 18 },
+  '0x92f9f459f1a9a5ad266b182be7bffd1c6c666894': { symbol: 'COHR', class: 'stocks', name: 'Coherent', decimals: 18 },
+  '0x4d67253bc223e6b0e104f1084c1fb2b669ddc41b': { symbol: 'CRDO', class: 'stocks', name: 'Credo Technology Group', decimals: 18 },
+  '0xd95b44124e475743a7589e68f3d74008a5536d44': { symbol: 'CRM', class: 'stocks', name: 'Salesforce', decimals: 18 },
+  '0xea72ecca2d0f6bfa1394dbbcff85b52cd4233931': { symbol: 'CRWD', class: 'stocks', name: 'CrowdStrike Holdings', decimals: 18 },
+  '0x5f10a1c971b69e47e059e1dc91901b59b3fb49c3': { symbol: 'CRWV', class: 'stocks', name: 'CoreWeave', decimals: 18 },
+  '0xf543967eebb6f1917992ef0e68de63ab07a5a0da': { symbol: 'CSCO', class: 'stocks', name: 'Cisco Systems', decimals: 18 },
+  '0x63d5a3b6939a33f1e75d8bcd85759858239600db': { symbol: 'CTSH', class: 'stocks', name: 'Cognizant', decimals: 18 },
+  '0xa4f319104089fe321dc8093c6e707d4fe190a988': { symbol: 'CVNA', class: 'stocks', name: 'Carvana', decimals: 18 },
+  '0x27c99fbde9d0d2aa4f4bfb4943f237843ddf6958': { symbol: 'DDOG', class: 'stocks', name: 'Datadog', decimals: 18 },
+  '0xc02f12b9fe9e707079ec0d546f3050d3f6c1f8bd': { symbol: 'DOCN', class: 'stocks', name: 'DigitalOcean', decimals: 18 },
+  '0x39ec44bee4f6a116c6f9b8de566848a985c53c60': { symbol: 'ELF', class: 'stocks', name: 'e.l.f. Beauty', decimals: 18 },
+  '0x1c690498150252222c275a5ced69d3a6b1f52d5e': { symbol: 'EWT', class: 'stocks', name: 'iShares MSCI Taiwan Capped ETF', decimals: 18 },
+  '0x7f0abef0c07280f82c6a08ead09ded6bae2c13fc': { symbol: 'EWY', class: 'stocks', name: 'iShares MSCI South Korea fund', decimals: 18 },
+  '0x25c288e6d899b9bc30160965ad9644c67e73be0c': { symbol: 'F', class: 'stocks', name: 'Ford Motor', decimals: 18 },
+  '0xa48f22a46c0f1c46ca7d111cb6c137c271987180': { symbol: 'FICO', class: 'stocks', name: 'Fair Isaac', decimals: 18 },
+  '0x41f4267525a8aff329540ef24fd83d9044758b33': { symbol: 'FIG', class: 'stocks', name: 'Figma', decimals: 18 },
+  '0x9ece29a4a2397c0a35fb5fa8ee2b9509130a98cc': { symbol: 'FISV', class: 'stocks', name: 'Fiserv', decimals: 18 },
+  '0x93dbb1d2dc5d63f4abacff30485273f538df68ac': { symbol: 'FIX', class: 'stocks', name: 'Comfort Systems', decimals: 18 },
+  '0x282e87451e10fa6679bc7d76c69be44cd3fc777c': { symbol: 'FLNC', class: 'stocks', name: 'Fluence Energy', decimals: 18 },
+  '0x03bc731ffb162cdd7b98d3c6542bfc291126075d': { symbol: 'FLY', class: 'stocks', name: 'Firefly Aerospace Inc.', decimals: 18 },
+  '0x3fb8976980d486084b2eb4a404bd12e72823958f': { symbol: 'FTNT', class: 'stocks', name: 'Fortinet', decimals: 18 },
+  '0xeb30663bdff0622ef4e4e5cbb4e975f19f33f51d': { symbol: 'FUTU', class: 'stocks', name: 'Futu Holdings', decimals: 18 },
+  '0x63b814ddbd6bf339f25fed8c36158a008d5b373e': { symbol: 'GE', class: 'stocks', name: 'General Electric', decimals: 18 },
+  '0x94b8aae43a1ccc08aa64b7d1f29b4d920af4a0c9': { symbol: 'GEV', class: 'stocks', name: 'GE Vernova', decimals: 18 },
+  '0x7c04e6a3368f2a1de3874f0e80d2e0a1a9915da6': { symbol: 'GLW', class: 'stocks', name: 'Corning', decimals: 18 },
+  '0x2d427692e928fa156ec22acfabafa0447c5805b7': { symbol: 'GLXY', class: 'stocks', name: 'Galaxy Digital Inc.', decimals: 18 },
+  '0xeb61c0ed490a367d4e3631ccf8a74b3bfc7e775d': { symbol: 'HII', class: 'stocks', name: 'Huntington Ingalls', decimals: 18 },
+  '0x59dd09d4900c2e4b5f75b7c0d4e6796fcc234cb1': { symbol: 'HPE', class: 'stocks', name: 'HP Enterprise', decimals: 18 },
+  '0xaea445c5f3db1a462998ccc422a875a361ee5d99': { symbol: 'HWM', class: 'stocks', name: 'Howmet Aerospace', decimals: 18 },
+  '0x980dcf6766fa79f5cf0c4aadb3ab477ff15a9619': { symbol: 'IBM', class: 'stocks', name: 'IBM', decimals: 18 },
+  '0x7c148f74ac7445d1f28366b7fcdc6792a9fcd0cf': { symbol: 'IBRX', class: 'stocks', name: 'ImmunityBio', decimals: 18 },
+  '0xacef2e09adb47ad6abebad9ff06689e60615c2b6': { symbol: 'INDA', class: 'stocks', name: 'iShares MSCI India ETF', decimals: 18 },
+  '0xb853bc83a753342a4f8320ea680b4b1e84118d21': { symbol: 'INFQ', class: 'stocks', name: 'Infleqtion', decimals: 18 },
+  '0xf1953dab6fad537488d5a022361ffaa8b4c95ec6': { symbol: 'INOD', class: 'stocks', name: 'Innodata', decimals: 18 },
+  '0xc72b96e0e48ecd4dc75e1e45396e26300bc39681': { symbol: 'INTC', class: 'stocks', name: 'Intel', decimals: 18 },
+  '0x56d23bee5f41a7120170b0c603dae30128e460e9': { symbol: 'INTU', class: 'stocks', name: 'Intuit', decimals: 18 },
+  '0x558378e000d634a36593e338ebacdd6207640efe': { symbol: 'IONQ', class: 'stocks', name: 'IonQ', decimals: 18 },
+  '0xf0ab0c93be6f41369d302e55db1a96b3c430212d': { symbol: 'IREN', class: 'stocks', name: 'IREN Limited', decimals: 18 },
+  '0xeaf2512dfc1beac608f8794b3793cd4e02894aa6': { symbol: 'JBL', class: 'stocks', name: 'Jabil Inc.', decimals: 18 },
+  '0x03dfbbe0ac4e7bcdafd08ed41a400326b77d8c80': { symbol: 'JNJ', class: 'stocks', name: 'Johnson & Johnson', decimals: 18 },
+  '0xb334c5ce741b80b5b671f47f5c269cb193fe8e24': { symbol: 'JOBY', class: 'stocks', name: 'Joby Aviation', decimals: 18 },
+  '0x96b933c74ecb4a0926b9210cef7b743ef46be2e9': { symbol: 'KLAC', class: 'stocks', name: 'KLA', decimals: 18 },
+  '0x12e3c047bf9aecaf9ddc98c05c31bfd1dd043993': { symbol: 'KSS', class: 'stocks', name: 'Kohls Corporation', decimals: 18 },
+  '0x7fd06a4d81ccfa3f351394e144d5191874c31313': { symbol: 'KTOS', class: 'stocks', name: 'Kratos Defense & Security Solutions', decimals: 18 },
+  '0x48d60243c66437c6ac3c2495be94747aed5dfe25': { symbol: 'LHX', class: 'stocks', name: 'L3Harris', decimals: 18 },
+  '0x8ef20885f94e3d9bc7eb3080279188bd5ed7c08c': { symbol: 'LITE', class: 'stocks', name: 'Lumentum', decimals: 18 },
+  '0x329fcaceb9ad6f9580dd5f643fed0646900d043c': { symbol: 'LMT', class: 'stocks', name: 'Lockheed', decimals: 18 },
+  '0x57b0030166db0c31690d1a5aa167e2e26e2c29a4': { symbol: 'LRCX', class: 'stocks', name: 'Lam Research Corp', decimals: 18 },
+  '0x4e62068525ab11fe768e29dfd00ef909b9803016': { symbol: 'LULU', class: 'stocks', name: 'Lululemon', decimals: 18 },
+  '0xa5d4968421ba94814be3b136b15cf422101ac1a3': { symbol: 'LUNR', class: 'stocks', name: 'Intuitive Machines', decimals: 18 },
+  '0xddf2266b79abf0b48898959b0ed6e6adf512be74': { symbol: 'MDB', class: 'stocks', name: 'MongoDB', decimals: 18 },
+  '0xc6cbad1016b38b797610c25e1dc7d95988b1f362': { symbol: 'MOD', class: 'stocks', name: 'Modine', decimals: 18 },
+  '0x52d50d0280ad1054b43f052bd70a49a212a1b128': { symbol: 'MPWR', class: 'stocks', name: 'Monolithic Power Systems', decimals: 18 },
+  '0x43b07d15ce533bec5476d70c22a78a1b2b662155': { symbol: 'MRNA', class: 'stocks', name: 'Moderna', decimals: 18 },
+  '0x62fd0668e10d8b72339be2dcf7643001688ff13b': { symbol: 'MRVL', class: 'stocks', name: 'Marvell Technology', decimals: 18 },
+  '0xc93f4d80e268ab922e871bd169156c3cc41894e6': { symbol: 'MTSI', class: 'stocks', name: 'MACOM', decimals: 18 },
+  '0x48961813349333209994750ffa89b3c5c22ec969': { symbol: 'MXL', class: 'stocks', name: 'MaxLinear', decimals: 18 },
+  '0xf7181b63fdb858558a74ba96bc42732684cd7965': { symbol: 'NAVN', class: 'stocks', name: 'Navan', decimals: 18 },
+  '0x9d9c6684f596f66a64c030b93a886d51fd4d7931': { symbol: 'NBIS', class: 'stocks', name: 'Nebius Group', decimals: 18 },
+  '0x116f00968269b7bfbad4109ce591d6e74c0601d4': { symbol: 'NET', class: 'stocks', name: 'Cloudflare', decimals: 18 },
+  '0xe0444ef8bf4ed74f74fd73686e2ddf4c1c5591e8': { symbol: 'NFLX', class: 'stocks', name: 'Netflix', decimals: 18 },
+  '0xbef75684c43c4ea7bd18dd532a2244674ee8b926': { symbol: 'NNE', class: 'stocks', name: 'Nano Nuclear Energy', decimals: 18 },
+  '0x0c3260af4b8f13a69c4c2dfb84fd667890cdfa14': { symbol: 'NOW', class: 'stocks', name: 'ServiceNow', decimals: 18 },
+  '0x408c14038a04f7bd235329e26d2bf569ee20e250': { symbol: 'NU', class: 'stocks', name: 'Nu', decimals: 18 },
+  '0xbe6702d7b70315376dc48a3293f24f0982f86386': { symbol: 'NVTS', class: 'stocks', name: 'Navitas Semiconductor', decimals: 18 },
+  '0x8b2f88497f15a18e9d4ffa1a8ffb8538399ae774': { symbol: 'OKLO', class: 'stocks', name: 'Oklo', decimals: 18 },
+  '0xbbd09f72b025360fee5c928053dca6248d35be54': { symbol: 'ON', class: 'stocks', name: 'ON Semiconductor', decimals: 18 },
+  '0x8ff63eaeee3fe54ba450c4f5538064ec5a893aef': { symbol: 'ONTO', class: 'stocks', name: 'Onto Innovation', decimals: 18 },
+  '0xb0992820e760d836549ba69bc7598b4af75dee03': { symbol: 'ORCL', class: 'stocks', name: 'Oracle', decimals: 18 },
+  '0x40e7a279850e443f582059ae5dc1c3b6563e6395': { symbol: 'OUST', class: 'stocks', name: 'Ouster', decimals: 18 },
+  '0x1cdad396db64bda184d5182a97dd9b3c62100b7d': { symbol: 'P', class: 'stocks', name: 'Everpure', decimals: 18 },
+  '0xb039597ed45cba7b6e2fb9e8be51802969cee5be': { symbol: 'PANW', class: 'stocks', name: 'Palo Alto Networks', decimals: 18 },
+  '0xfb2664f07b6aadd29ea7a59d8859b1aeb8645cda': { symbol: 'PATH', class: 'stocks', name: 'UiPath', decimals: 18 },
+  '0x9b23573b156b52565012f5ce02cdf60afbaa70be': { symbol: 'PENG', class: 'stocks', name: 'Penguin Solutions', decimals: 18 },
+  '0x7066a64c24e4206cd62e83bf198c1e7eb361f51e': { symbol: 'PFE', class: 'stocks', name: 'Pfizer', decimals: 18 },
+  '0xaa4d64474c172010ab57719cb9951e6142a100d3': { symbol: 'PL', class: 'stocks', name: 'Planet Labs', decimals: 18 },
+  '0xcf6b2d875361be807eafa57458c80f28521f9333': { symbol: 'POET', class: 'stocks', name: 'POET Technologies', decimals: 18 },
+  '0x237c16d66590f67b886d978acd362eaead8b18c7': { symbol: 'POWL', class: 'stocks', name: 'Powell Industries', decimals: 18 },
+  '0x4189f0c66ebbb0bfef1c31f763131361ef32f77c': { symbol: 'PR', class: 'stocks', name: 'Permian Resources', decimals: 18 },
+  '0x9ab02ead789b6903c3c44d0ed32f9c707cdf12fd': { symbol: 'PWR', class: 'stocks', name: 'Quanta', decimals: 18 },
+  '0xc583c60aef9dc401da72cec1b404743a93cea1cc': { symbol: 'QBTS', class: 'stocks', name: 'D-Wave Quantum Inc. Common Stock', decimals: 18 },
+  '0x0f17206447090e464c277571124dd2688e48aea9': { symbol: 'QCOM', class: 'stocks', name: 'Qualcomm', decimals: 18 },
+  '0x59818904ab4ce163b3ce4ffb64f2d6ca02c434b4': { symbol: 'QUBT', class: 'stocks', name: 'Quantum Computing', decimals: 18 },
+  '0xfde6b5d9bb419b10c23268c74e369abff39c0460': { symbol: 'RCAT', class: 'stocks', name: 'Red Cat', decimals: 18 },
+  '0x92ef19e82bd8ff36661de838d5eae7e5cef0effe': { symbol: 'RDW', class: 'stocks', name: 'Redwire', decimals: 18 },
+  '0x284358abc07f9359f19f4b5b4ac91901be2597ba': { symbol: 'RGTI', class: 'stocks', name: 'Rigetti Computing', decimals: 18 },
+  '0xb1bf26c1d20ff267a4f93550d1e0d06ac40a114b': { symbol: 'RIVN', class: 'stocks', name: 'Rivian Automotive', decimals: 18 },
+  '0x3b14c39e89d60d627b42a1a4ca45b5bb45fc12e2': { symbol: 'RKLB', class: 'stocks', name: 'Rocket Lab Corporation', decimals: 18 },
+  '0x756bc80af765c82da966a788858d65adf14f3793': { symbol: 'RUN', class: 'stocks', name: 'Sunrun', decimals: 18 },
+  '0x95052ddcd5dc25641657424a8cf04834997e1730': { symbol: 'SATS', class: 'stocks', name: 'EchoStar', decimals: 18 },
+  '0xd63abb2c13d7a8421a8017a712802053568e3c1d': { symbol: 'SCHD', class: 'stocks', name: 'Schwab US Dividend Equity ETF', decimals: 18 },
+  '0x92fd66527192e3e61d4ddd13322aa222de86f9b5': { symbol: 'SGOV', class: 'stocks', name: 'iShares 0-3 Month Treasury Bond', decimals: 18 },
+  '0xf53f66751b1eff985311b693531e3290f600c410': { symbol: 'SHOP', class: 'stocks', name: 'Shopify', decimals: 18 },
+  '0xbe274710bf3d9567e1b290ef6a5f9f90ca016fd8': { symbol: 'SHY', class: 'stocks', name: 'iShares 1-3 Year Treasury Bond ETF', decimals: 18 },
+  '0x77e655e37f4d913fb9540e0d541d824171a60e81': { symbol: 'SIMO', class: 'stocks', name: 'Silicon Motion', decimals: 18 },
+  '0x285b231728c7e4333799183df1094d775246a535': { symbol: 'SLS', class: 'stocks', name: 'SELLAS Life Sciences', decimals: 18 },
+  '0x411efb0e7f985935daec3d4c3ebaea0d0ad7d89f': { symbol: 'SLV', class: 'stocks', name: 'iShares Silver Trust', decimals: 18 },
+  '0xc01aa1fecec0605b13bc84874ff7256c0f5f562a': { symbol: 'SMCI', class: 'stocks', name: 'Super Micro Computer', decimals: 18 },
+  '0x072f979c2cac8e1391b0162a87fee094bf8744a0': { symbol: 'SMH', class: 'stocks', name: 'VanEck Semiconductor ETF', decimals: 18 },
+  '0x1eebee7f74517e0279dfb09d25b0407beec3fdd6': { symbol: 'SMR', class: 'stocks', name: 'NuScale Power', decimals: 18 },
+  '0xf6589f11bc40b669e584073f428b05562f568733': { symbol: 'SNAP', class: 'stocks', name: 'Snap', decimals: 18 },
+  '0xba0cab75495255d0cb58e22b648bfed4ecd1f47e': { symbol: 'SNOW', class: 'stocks', name: 'Snowflake', decimals: 18 },
+  '0x98e75885157c80992a8d41b696d8c9c6fb30a926': { symbol: 'SOFI', class: 'stocks', name: 'SoFi Technologies', decimals: 18 },
+  '0x6e3dfd9f7e1649baa14d25cac18c94d62db10a54': { symbol: 'SOUN', class: 'stocks', name: 'SoundHound AI', decimals: 18 },
+  '0x75742c18bc1f1c5c5f448f4c9d9c6f66dafaaa38': { symbol: 'SOXX', class: 'stocks', name: 'iShares Semiconductor ETF', decimals: 18 },
+  '0xad622320e520de39e72d41ef07438c3fd3354875': { symbol: 'SPMO', class: 'stocks', name: 'Invesco S\\&P 500 Momentum ETF', decimals: 18 },
+  '0xb1969f6604ca1ae7a2cd3f1827876e914594ca2d': { symbol: 'TE', class: 'stocks', name: 'T1 Energy', decimals: 18 },
+  '0x5b97476b922f3305131b8f0b9d333172e87f4aae': { symbol: 'TEAM', class: 'stocks', name: 'Atlassian Corporation', decimals: 18 },
+  '0xb1cc0ec7db69cf43539119814df40071b9d61793': { symbol: 'TEM', class: 'stocks', name: 'Tempus AI', decimals: 18 },
+  '0x2778c5024d5ca2cdb0f8ead671ffc69963adcd9c': { symbol: 'TER', class: 'stocks', name: 'Teradyne', decimals: 18 },
+  '0x89776d4cd68193597a2fc132cfac1fde36ccea8a': { symbol: 'TSEM', class: 'stocks', name: 'Tower Semiconductor', decimals: 18 },
+  '0x0b5fb4031cae9163db10b169ee72685f0edc8545': { symbol: 'TTD', class: 'stocks', name: 'Trade Desk', decimals: 18 },
+  '0x0e6e67ba88e7b5d9b67636a215c76779b948de79': { symbol: 'UMC', class: 'stocks', name: 'United Microelectronics', decimals: 18 },
+  '0xcf364ea52787e289de6f32077834056e3e70d6a8': { symbol: 'UNH', class: 'stocks', name: 'UnitedHealth', decimals: 18 },
+  '0xf23250dac154d05bb671cb0d0ebef3c635c79ce2': { symbol: 'UPS', class: 'stocks', name: 'UPS', decimals: 18 },
+  '0xd917b029c761d264c6a312bbbcda868658ef86a6': { symbol: 'USAR', class: 'stocks', name: 'USA Rare Earth', decimals: 18 },
+  '0x6006ed4b2f94110851ff7509d97d034f0eed9226': { symbol: 'VICR', class: 'stocks', name: 'Vicor', decimals: 18 },
+  '0xfa78c12e6488814a0262e4e802749a4a737d5fb7': { symbol: 'VRT', class: 'stocks', name: 'Vertiv', decimals: 18 },
+  '0x26dcbfb34fc83cabd6990f449674efdc6097ff85': { symbol: 'VSAT', class: 'stocks', name: 'ViaSat', decimals: 18 },
+  '0x561e2a49212b7ccf47f2744ccb83e200722fadbc': { symbol: 'VST', class: 'stocks', name: 'Vistra', decimals: 18 },
+  '0x0594134df3f171a354d9c85ebd65b7a6148f6d09': { symbol: 'VTI', class: 'stocks', name: 'Vanguard Morningstar Total Stock Market ETF', decimals: 18 },
+  '0x82da4646242e1d962e96e932269dc644c94a9caa': { symbol: 'WDAY', class: 'stocks', name: 'Workday', decimals: 18 },
+  '0xf52597345a8edf418bc4071b4a35112472277d3e': { symbol: 'WDC', class: 'stocks', name: 'Western Digital', decimals: 18 },
+  '0x348be1a8663f15edde5cdf8a96bb69078f7ab6fd': { symbol: 'WULF', class: 'stocks', name: 'TeraWulf', decimals: 18 },
+  '0x15cd20759ce7f3285c29a319de2d1a2e098c6f43': { symbol: 'XLK', class: 'stocks', name: 'State Street Technology Select Sector SPDR ETF', decimals: 18 },
+  '0xa8eb3bccbf2017ee7cbfb652eb51cf2e1b153289': { symbol: 'XNDU', class: 'stocks', name: 'Xanadu Quantum', decimals: 18 },
+  '0xf9b46d3d1b22199d4d1025a9cedb540a33f1a2d5': { symbol: 'XOM', class: 'stocks', name: 'ExxonMobil Holdings Corporation', decimals: 18 },
+  '0x44c4f142009036cf477ed2d09932051843137cf1': { symbol: 'ZM', class: 'stocks', name: 'Zoom', decimals: 18 },
+  '0x7dc013eb55e436f30d7ed1afe4e36d6e45e3c3f7': { symbol: 'ZS', class: 'stocks', name: 'Zscaler', decimals: 18 },
 };
 
 const SAFE_LINKS = [
@@ -374,34 +537,195 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function hydrateStubMetadata(launches, limit = 60) {
-  const stubs = launches.filter((x) => x && (x._stub || x.name === 'Unknown' || x.symbol === '???') && x.token);
-  const targets = stubs.slice(0, limit);
-  let ok = 0;
-  function decodeString(hex) {
-    const h = String(hex || '').replace(/^0x/, '');
-    if (h.length < 128) return null;
-    const len = parseInt(h.slice(64, 128), 16);
-    if (!Number.isFinite(len) || len <= 0 || len > 128) return null;
-    const data = h.slice(128, 128 + len * 2);
-    return Buffer.from(data, 'hex').toString('utf8').replace(/\0/g, '').trim();
-  }
-  for (const item of targets) {
+function shortAddrLocal(a) {
+  const s = String(a || '');
+  if (s.length < 12) return s || '—';
+  return `${s.slice(0, 6)}…${s.slice(-4)}`;
+}
+
+function decodeAbiString(hex) {
+  const h = String(hex || '').replace(/^0x/, '');
+  if (!h || h === '0') return null;
+  // dynamic string
+  if (h.length >= 128) {
     try {
-      const [nameHex, symHex] = await Promise.all([
-        rpc('eth_call', [{ to: item.token, data: '0x06fdde03' }, 'latest']),
-        rpc('eth_call', [{ to: item.token, data: '0x95d89b41' }, 'latest']),
-      ]);
-      const name = decodeString(nameHex);
-      const symbol = decodeString(symHex);
-      if (name) item.name = name;
-      if (symbol) item.symbol = symbol;
-      if (name || symbol) ok += 1;
-      delete item._stub;
-    } catch {
-      /* rate limit / revert */
+      const len = parseInt(h.slice(64, 128), 16);
+      if (Number.isFinite(len) && len > 0 && len <= 256) {
+        const data = h.slice(128, 128 + len * 2);
+        const s = Buffer.from(data, 'hex').toString('utf8').replace(/\0/g, '').trim();
+        if (s) return s;
+      }
+    } catch { /* fall through */ }
+  }
+  // bytes32 fallback
+  try {
+    const raw = Buffer.from(h.slice(0, 64).padEnd(64, '0'), 'hex').toString('utf8').replace(/\0/g, '').trim();
+    return raw || null;
+  } catch {
+    return null;
+  }
+}
+
+async function rpcCallWithRetry(method, params, { retries = 6 } = {}) {
+  let lastErr;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await rpc(method, params);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e);
+      if (msg.includes('429') || /too many requests/i.test(msg) || /rate/i.test(msg)) {
+        await sleep(800 * (i + 1) + Math.floor(Math.random() * 200));
+        continue;
+      }
+      throw e;
     }
-    await sleep(40);
+  }
+  throw lastErr;
+}
+
+async function fetchTokenMetaBlockscout(addr) {
+  const url = `https://robinhoodchain.blockscout.com/api/v2/tokens/${addr}`;
+  try {
+    const j = await fetchJson(url, 20000);
+    const name = (j?.name || '').trim() || null;
+    const symbol = (j?.symbol || '').trim() || null;
+    if (name || symbol) return { name, symbol, source: 'blockscout' };
+  } catch { /* CF / 403 */ }
+  return null;
+}
+
+async function fetchTokenMetaRpc(addr) {
+  const [nameHex, symHex] = await Promise.all([
+    rpcCallWithRetry('eth_call', [{ to: addr, data: '0x06fdde03' }, 'latest']),
+    rpcCallWithRetry('eth_call', [{ to: addr, data: '0x95d89b41' }, 'latest']),
+  ]);
+  return {
+    name: decodeAbiString(nameHex),
+    symbol: decodeAbiString(symHex),
+    source: 'rpc',
+  };
+}
+
+function isStubMeta(x) {
+  if (!x) return false;
+  const name = x.name;
+  const symbol = x.symbol;
+  return (
+    x._stub
+    || !name
+    || name === 'Unknown'
+    || /^0x[a-fA-F0-9]{6}…/.test(String(name))
+    || !symbol
+    || symbol === '???'
+    || symbol === 'UNK'
+  );
+}
+
+function classifyQuoteClassGuess(symbol) {
+  const s = String(symbol || '').toUpperCase();
+  if (!s) return 'other';
+  if (s === 'USDG' || s === 'USDC' || s === 'USDT' || s === 'DAI') return 'usdg';
+  if (s === 'ETH' || s === 'WETH') return 'eth';
+  if (s === 'BTC' || s === 'CBBTC' || s === 'WBTC') return 'btc';
+  // ticker-like equity / ETF
+  if (/^[A-Z]{1,5}$/.test(s) || /^[A-Z]{2,5}\.[A-Z]$/.test(s)) return 'stocks';
+  return 'other';
+}
+
+/** Hydrate Unknown/??? launch token metadata via RPC (+ Blockscout fallback). */
+async function hydrateStubMetadata(launches, limit = 500) {
+  const stubs = (launches || []).filter((x) => isStubMeta(x) && x.token);
+  // Prioritize stock-quoted stubs, then unknown quote class, then the rest
+  stubs.sort((a, b) => {
+    const rank = (x) => {
+      const c = x.quoteClass || classifyPair(x.pairToken).quoteClass;
+      if (c === 'stocks') return 0;
+      if (c === 'unknown') return 1;
+      if (c === 'usdg') return 2;
+      return 3;
+    };
+    return rank(a) - rank(b);
+  });
+  const targets = stubs.slice(0, Math.max(limit, stubs.length));
+  let ok = 0;
+  let fail = 0;
+  for (const item of targets) {
+    const addr = item.token;
+    let meta = null;
+    try {
+      meta = await fetchTokenMetaRpc(addr);
+    } catch {
+      meta = null;
+    }
+    if ((!meta?.name && !meta?.symbol)) {
+      await sleep(120);
+      meta = await fetchTokenMetaBlockscout(addr);
+    }
+    if (meta?.name && (item.name === 'Unknown' || !item.name || item._stub)) item.name = meta.name;
+    if (meta?.symbol && (item.symbol === '???' || !item.symbol || item._stub || item.symbol === 'UNK')) {
+      item.symbol = meta.symbol;
+    }
+    if (meta?.name || meta?.symbol) {
+      ok += 1;
+      delete item._stub;
+    } else {
+      fail += 1;
+      // Prefer shortened token address over the word "Unknown"
+      if (!item.name || item.name === 'Unknown') item.name = `Token ${shortAddrLocal(addr)}`;
+      if (!item.symbol || item.symbol === '???') item.symbol = shortAddrLocal(addr);
+      delete item._stub;
+    }
+    await sleep(350);
+  }
+  return { ok, fail, attempted: targets.length };
+}
+
+/** Resolve unknown pairToken quotes into QUOTE_REGISTRY via RPC/Blockscout. */
+async function hydrateUnknownQuotePairs(launches, limit = 40) {
+  const pairs = [];
+  const seen = new Set();
+  for (const x of launches || []) {
+    const p = (x?.pairToken || '').toLowerCase();
+    if (!p || seen.has(p)) continue;
+    const q = classifyPair(p);
+    if (q.quoteClass !== 'unknown' && q.quoteSymbol !== 'UNK') continue;
+    seen.add(p);
+    pairs.push(p);
+  }
+  const targets = pairs.slice(0, limit);
+  let ok = 0;
+  for (const addr of targets) {
+    let meta = null;
+    try {
+      meta = await fetchTokenMetaRpc(addr);
+    } catch {
+      meta = null;
+    }
+    if (!meta?.symbol && !meta?.name) {
+      await sleep(120);
+      meta = await fetchTokenMetaBlockscout(addr);
+    }
+    if (!meta?.symbol && !meta?.name) {
+      await sleep(200);
+      continue;
+    }
+    const symbol = (meta.symbol || shortAddrLocal(addr)).slice(0, 12);
+    const name = meta.name || symbol;
+    const cls = classifyQuoteClassGuess(symbol);
+    QUOTE_REGISTRY[addr] = {
+      symbol,
+      class: cls === 'other' ? 'other' : cls,
+      name,
+      decimals: 18,
+    };
+    // normalize class: keep unknown only if truly empty — prefer other over unknown
+    if (QUOTE_REGISTRY[addr].class === 'other') {
+      // UI treats non stocks/usdg/eth/btc as unknown-ish; map ticker-like already handled
+      QUOTE_REGISTRY[addr].class = /^[A-Z0-9.]{1,8}$/.test(symbol) ? 'stocks' : 'other';
+    }
+    ok += 1;
+    await sleep(350);
   }
   return { ok, attempted: targets.length };
 }
@@ -755,10 +1079,28 @@ async function main() {
   }
 
   try {
-    hydrateInfo = await hydrateStubMetadata(merged, 50);
-    console.log(`Stub metadata hydrate: ok=${hydrateInfo.ok} attempted=${hydrateInfo.attempted}`);
+    // Aggressive: hydrate ALL stubs (esp. stock-quoted), not a small sample.
+    hydrateInfo = await hydrateStubMetadata(merged, 500);
+    console.log(`Stub metadata hydrate: ok=${hydrateInfo.ok} fail=${hydrateInfo.fail || 0} attempted=${hydrateInfo.attempted}`);
   } catch (e) {
     errors.push(`hydrate: ${e.message || e}`);
+  }
+
+  try {
+    const qh = await hydrateUnknownQuotePairs(merged, 60);
+    console.log(`Unknown quote pair hydrate: ok=${qh.ok} attempted=${qh.attempted}`);
+  } catch (e) {
+    errors.push(`quote-hydrate: ${e.message || e}`);
+  }
+
+  // Re-apply classifyPair after registry growth / quote hydrate
+  for (const item of merged) {
+    if (!item?.pairToken) continue;
+    const q = classifyPair(item.pairToken);
+    item.quoteSymbol = q.quoteSymbol;
+    item.quoteClass = q.quoteClass;
+    item.quoteName = q.quoteName;
+    item.quoteDecimals = q.quoteDecimals;
   }
 
   // Cap payload: prefer named API rows; keep all non-ETH quotes; fill with ETH.
