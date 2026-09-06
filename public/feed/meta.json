@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T03:42:13.509Z",
+  "updatedAt": "2026-09-06T03:49:13.606Z",
   "source": {
     "recent100": "https://www.ponsfamily.com/api/pons-launches?limit=100",
     "recent20": "https://www.ponsfamily.com/api/pons-launches?limit=20",
@@ -19,33 +19,33 @@
     "launches": 500,
     "recent100Fetched": 100,
     "recent20Fetched": 35,
-    "historicalFetched": 922,
-    "ethGetLogsTokenLaunched": 333,
+    "historicalFetched": 2156,
+    "ethGetLogsTokenLaunched": 361,
     "receiptPairTokenEnrich": {
       "ok": 0,
       "fail": 0,
       "attempted": 0
     },
     "stubMetadataHydrate": {
-      "ok": 79,
-      "fail": 1,
+      "ok": 80,
+      "fail": 0,
       "attempted": 80
     },
     "byQuoteClass": {
       "eth": 420,
-      "usdg": 45,
-      "stocks": 35,
+      "usdg": 36,
+      "stocks": 44,
       "btc": 0,
       "unknown": 0
     },
-    "stockQuoted": 35,
-    "usdgQuoted": 45,
-    "graduated": 124
+    "stockQuoted": 44,
+    "usdgQuoted": 36,
+    "graduated": 320
   },
   "rpc": {
     "ok": true,
     "chainId": 4663,
-    "blockNumber": 55664443,
+    "blockNumber": 55668649,
     "factories": {
       "v1": "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
       "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
@@ -61,9 +61,9 @@
   },
   "ethGetLogs": {
     "ok": true,
-    "count": 333,
-    "fromBlock": 55643605,
-    "toBlock": 55663605,
+    "count": 361,
+    "fromBlock": 55648006,
+    "toBlock": 55668006,
     "topicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
     "topicRecent": "0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a",
     "factories": {
@@ -71,44 +71,44 @@
       "recent": "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75"
     },
     "counts": {
-      "v2": 333,
+      "v2": 361,
       "recent": 0
     },
     "softErrors": [],
     "samples": [
       {
-        "token": "0xe408048ff5c3a6430d96aa4411109317783b0fc9",
-        "pairToken": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
-        "deployer": "0x7035da44aae1f9dc020bb1a2d9e886e7a9a890df",
-        "tx": "0xdea0cbdb63258ffb99e6c30174e7a700c40ca3ef6b49b08bbecf2b530624ac6f",
+        "token": "0x36bcc9f1990b25e5ddbf0bf60765d956f4e1b149",
+        "pairToken": "0xcef9027c7d6985b85f0ba431125073529a947a68",
+        "deployer": "0x6c5872b12f3403fe3f0e363419c9406b4d0525db",
+        "tx": "0x3cd1cf0645179a68f59748db448fa9dec81290a3137c719fc5447bcc8b8f5c11",
         "style": "v2"
       },
       {
-        "token": "0xa2b4f03f6e42d582a5f2264e4cd7c5e6c44bb0b1",
+        "token": "0x8f0500d7158353dfc5965c53a98d8dcd7fc15ab2",
+        "pairToken": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
+        "deployer": "0x6ad816ad69fd303ca172753992394c8183dc1d3e",
+        "tx": "0xa94f921a9ec4d9322733a11ae7c8e5017b16504152ce8cb021e8fd2a7b7cd0cc",
+        "style": "v2"
+      },
+      {
+        "token": "0x697a7c125887822e50f717115e84beccc8895a85",
         "pairToken": "0x0000000000000000000000000000000000000000",
-        "deployer": "0xfba11c84041c2d70a8a3a724c5d5212e50ba858a",
-        "tx": "0x1dfcf3b4e1b869abb14437e1a3e3ee38d94b7d9a4f8bbc3f6a74c00ec28c5ed1",
+        "deployer": "0x69140616b5f681bc7a44ed58049915176d873e57",
+        "tx": "0xa067273b76aa1d37e3cfe688d9f33015722f6310f9c687345039f9ebcf945854",
         "style": "v2"
       },
       {
-        "token": "0x4d16d08e452a81376392a32f4e66ae05270b2ccd",
+        "token": "0x24cde6b0efa929fe9cb64ba8cc2b478a1642d9bf",
+        "pairToken": "0x1d11f0496982706c5e14a514d4e79f2e6bde4516",
+        "deployer": "0x33eb1d067477fdbcf4cf99f32d862a5f72aaceae",
+        "tx": "0xf85e0fe38b51e0e8aebd0a9fb43d2eb77c1f14c42a1b1b3005a939dfc3d10758",
+        "style": "v2"
+      },
+      {
+        "token": "0xfa2a128dafc261b6361dc73e689e86e541a6c2d4",
         "pairToken": "0x0000000000000000000000000000000000000000",
-        "deployer": "0x3dd1fba57160808767038ed38c5d9ddf06c70dd9",
-        "tx": "0xe6772838081115acaa6e31e8809071ecae812f0ca86e74d96ea5c55bba80a265",
-        "style": "v2"
-      },
-      {
-        "token": "0xf56de39ea056823b70b9c082e7b61e25102d50bc",
-        "pairToken": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
-        "deployer": "0xa3b812ae764a88d497e97fdf6b6ec8244322f74a",
-        "tx": "0x2f811a86b7f5b05600ffca1c5a9e18781468e9611e9c52d349dee652a8a4080a",
-        "style": "v2"
-      },
-      {
-        "token": "0xcb8dee048c09242b181f7b665beb35e239ea6637",
-        "pairToken": "0xe93237c50d904957cf27e7b1133b510c669c2e74",
-        "deployer": "0x51ca58db6b8a2d6658e4de56f5514e60ad7c29d6",
-        "tx": "0xbf4d706ef6b343c0e50208c5dc617ef5128c6e2d23b0ab5519a6d4a8f95a0a2a",
+        "deployer": "0xd3ea2f1bd5f9a4f10d9b19c0f5eeb891d241da50",
+        "tx": "0x3969581846d04d0f68720557dce35d16f5457635d7bf0d6e483c02b3c26d979e",
         "style": "v2"
       }
     ]
