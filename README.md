@@ -11,7 +11,7 @@ Unique niche: RWA-quote discovery + Live RPC scanning + official Safe Links pane
 ## Features
 
 - Dark SPA with Live RPC, quote chips, On-curve toggle, notifications, quote mix bar
-- Watchlist, copy CA, shareable hash, keyboard shortcuts 1-5 and slash
+- Watchlist, copy CA, one-click Share, shareable hash, keyboard shortcuts 1-5 and slash
 - Public static JSON under /feed/
 
 ## Data files

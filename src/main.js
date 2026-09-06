@@ -64,6 +64,7 @@ const S = {
   explorer: 'Explorer',
   launchTx: 'Launch tx',
   copy: 'Copy CA',
+  share: 'Share',
   copied: 'Copied!',
   deployer: 'Deployer',
   curve: 'curve',
@@ -645,6 +646,7 @@ function renderCard(L, depCounts, flipMap = null) {
           ${L.explorerTokenUrl ? `<a class="chip-link" href="${esc(L.explorerTokenUrl)}" target="_blank" rel="noopener noreferrer">${esc(t('explorer'))}</a>` : ''}
           <a class="chip-link" href="${esc(pons)}" target="_blank" rel="noopener noreferrer">Pons</a>
           <button type="button" class="chip-link copy-btn" data-copy="${esc(L.token)}">${esc(t('copy'))} ${esc(shortAddr(L.token))}</button>
+          <button type="button" class="chip-link share-btn" data-share-token="${esc(L.token)}" title="Share launch">${esc(t('share'))}</button>
         </div>
       </div>
     </article>`;
@@ -1017,10 +1019,23 @@ function updateResultsOnly() {
   writeHash();
 }
 
-function copyTextFallback(addr) {
+const SHARE_BASE = 'https://stockcurve.github.io/app/';
+
+function flashCopied(btn) {
+  if (!btn) return;
+  const prev = btn.textContent;
+  btn.textContent = t('copied');
+  btn.classList.add('copied');
+  setTimeout(() => {
+    btn.textContent = prev;
+    btn.classList.remove('copied');
+  }, 1200);
+}
+
+function copyTextFallback(text) {
   try {
     const ta = document.createElement('textarea');
-    ta.value = addr;
+    ta.value = text;
     ta.setAttribute('readonly', '');
     ta.style.position = 'fixed';
     ta.style.left = '-9999px';
@@ -1031,30 +1046,84 @@ function copyTextFallback(addr) {
     if (ok) return true;
   } catch { /* ignore */ }
   try {
-    window.prompt('Copy contract address:', addr);
+    window.prompt('Copy:', text);
     return true;
   } catch {
     return false;
   }
 }
 
-async function copyCa(addr, btn) {
+async function copyTextToClipboard(text) {
   let ok = false;
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(addr);
+      await navigator.clipboard.writeText(text);
       ok = true;
     }
   } catch { /* fall through */ }
-  if (!ok) ok = copyTextFallback(addr);
-  if (!ok) return;
-  const prev = btn.textContent;
-  btn.textContent = t('copied');
-  btn.classList.add('copied');
-  setTimeout(() => {
-    btn.textContent = prev;
-    btn.classList.remove('copied');
-  }, 1200);
+  if (!ok) ok = copyTextFallback(text);
+  return ok;
+}
+
+async function copyCa(addr, btn) {
+  if (!(await copyTextToClipboard(addr))) return;
+  flashCopied(btn);
+}
+
+function shareFilterFor(L) {
+  const cls = L?.quoteClass;
+  if (['stocks', 'usdg', 'eth', 'btc'].includes(cls)) return cls;
+  return 'all';
+}
+
+function shareQuoteLabel(L) {
+  const sym = (L?.quoteSymbol || '').trim();
+  if (sym && sym !== 'UNK') return sym;
+  const cls = L?.quoteClass;
+  if (cls === 'usdg') return 'USDG';
+  if (cls === 'eth') return 'ETH';
+  if (cls === 'btc') return 'BTC';
+  if (cls === 'stocks') return 'stocks';
+  return 'quote';
+}
+
+function shareUrlFor(sym, filter) {
+  const params = new URLSearchParams();
+  params.set('filter', filter || 'stocks');
+  params.set('q', sym || '');
+  return `${SHARE_BASE}#${params.toString()}`;
+}
+
+function shareBlurbFor(L) {
+  const sym = displaySymbol(L);
+  const vs = shareQuoteLabel(L);
+  const filter = shareFilterFor(L);
+  const url = shareUrlFor(sym, filter);
+  const line1 = `$${sym} — quoted vs ${vs} on Robinhood Chain (Pons)`;
+  const addr = L?.token ? shortAddr(L.token) : '';
+  if (addr && addr !== '—') return `${line1}\n${addr}\n${url}`;
+  return `${line1}\n${url}`;
+}
+
+async function shareLaunch(L, btn) {
+  if (!L) return;
+  const blurb = shareBlurbFor(L);
+  const url = shareUrlFor(displaySymbol(L), shareFilterFor(L));
+  const title = `$${displaySymbol(L)} on StockCurve`;
+  if (typeof navigator.share === 'function') {
+    try {
+      const data = { title, text: blurb, url };
+      if (!navigator.canShare || navigator.canShare(data)) {
+        await navigator.share(data);
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      /* fall through to clipboard */
+    }
+  }
+  if (!(await copyTextToClipboard(blurb))) return;
+  flashCopied(btn);
 }
 
 function bindListActions(scope) {
@@ -1072,6 +1141,14 @@ function bindListActions(scope) {
   scope.querySelectorAll('.copy-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       copyCa(btn.dataset.copy || '', btn);
+    });
+  });
+  scope.querySelectorAll('.share-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = (btn.dataset.shareToken || '').toLowerCase();
+      const L = state.launches.find((x) => (x.token || '').toLowerCase() === key);
+      if (!L) return;
+      shareLaunch(L, btn);
     });
   });
 }
