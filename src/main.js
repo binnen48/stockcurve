@@ -10,6 +10,7 @@ const LS_NOTIFY = 'stockcurve.notifyStocks';
 
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
 const PONS_API_20 = 'https://www.ponsfamily.com/api/pons-launches?limit=20';
+const PONS_API_100 = 'https://www.ponsfamily.com/api/pons-launches?limit=100';
 const FACTORY_V2 = '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e';
 const FACTORY_RECENT = '0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75';
 const TOPIC_V2 = '0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607';
@@ -54,7 +55,7 @@ const S = {
   whyBody:
     'Most Pons tools track $PONS burns. StockCurve watches <strong style="color:var(--text)">which asset a launch is quoted against</strong> — NVDA/TSLA/… tokenized stocks, USDG, or ETH — so RWA-quote discovery is one filter away.',
   whyBody2:
-    'Public static JSON under <code>/feed/</code>. No login. No API keys. Browser auto-refresh every ~45s; server republish about hourly. Live mode polls Robinhood Chain RPC for TokenLaunched events.',
+    'Bootstraps once from public static JSON under <code>/feed/</code>. No login. No API keys. Live mode watches Robinhood Chain RPC for new TokenLaunched events; auto-refresh every ~45s pulls the Pons API (or a wider RPC log backfill if CORS blocks) so the list stays current in the browser.',
   disclaimer:
     '<strong>Disclaimer:</strong> Independent community tool — not affiliated with Robinhood or Pons. Not financial advice. DYOR.',
   footer: 'StockCurve · Robinhood Chain (4663)',
@@ -81,7 +82,7 @@ const S = {
   scanning: 'scanning',
   lastEvent: 'last event',
   liveOff: 'Feed only · Live off',
-  liveRpcFail: 'Live RPC failing — retrying with backoff. Feed refresh still works.',
+  liveRpcFail: 'Live RPC failing — retrying with backoff. Auto-refresh still tries Pons / RPC backfill.',
   toastDismiss: 'Dismiss',
   fomoTitle: 'New vs stocks',
 };
@@ -125,11 +126,15 @@ const LIVE_MAX_SPAN = 12;
 const LIVE_HYDRATE_LIMIT = 3;
 const LIVE_BACKOFF_START = 18_000;
 const LIVE_BACKOFF_CAP = 60_000;
+const BACKFILL_BLOCKS = 3500;
+const BACKFILL_CHUNK = 500;
 const FOMO_WINDOW_MS = 2 * 60 * 60 * 1000;
 let knownTokensAtBoot = new Set();
 let feedAbort = null;
 let feedReqId = 0;
 let livePollId = 0;
+let feedBootstrapped = false;
+let clientRefreshId = 0;
 let toastTimer = null;
 const liveFlashTimers = new Map();
 
@@ -1213,25 +1218,8 @@ async function pollLiveOnce() {
     liveBackoffMs = 0;
     liveRateLimited = false;
 
-    // Optional Pons HTTP (CORS may block) — at most once per successful poll
-    try {
-      const res = await fetch(PONS_API_20, { cache: 'no-store' });
-      if (myId !== livePollId || !state.live) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const before = state.launches.length;
-          mergeLaunches(data.map((x) => ({ ...x, _live: true })), { flash: true, notify: true });
-          if (state.launches.length > before) {
-            state.liveStatus.lastEventAt = new Date().toISOString();
-          }
-        }
-      }
-    } catch {
-      /* CORS or network — silent */
-    }
-
     if (myId !== livePollId || !state.live) return;
+    touchFreshness();
     if (added > 0) {
       state.pulse = true;
       setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
@@ -1346,7 +1334,100 @@ function maybeDefaultStocks() {
   state.defaultedStocks = true;
 }
 
-async function refreshData(manual = false) {
+function touchFreshness(iso = null) {
+  const now = iso || new Date().toISOString();
+  state.clientFetchedAt = now;
+  state.meta = { ...(state.meta || {}), updatedAt: now };
+  const clock = $('#upd-clock');
+  if (clock) clock.textContent = updatedClockLabel();
+}
+
+function parsePonsPayload(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.launches)) return data.launches;
+  if (Array.isArray(data?.data)) return data.data;
+  return null;
+}
+
+async function fetchPonsList(url, signal) {
+  const res = await fetch(url, { cache: 'no-store', signal, mode: 'cors' });
+  if (!res.ok) throw new Error(`Pons HTTP ${res.status}`);
+  const data = await res.json();
+  const list = parsePonsPayload(data);
+  if (!list) throw new Error('Pons payload shape unexpected');
+  return list;
+}
+
+/** Try Pons API; prefer limit=100 when CORS allows. Returns null on CORS/network fail. */
+async function tryFetchPons(signal) {
+  let list20 = null;
+  try {
+    list20 = await fetchPonsList(PONS_API_20, signal);
+  } catch {
+    return null;
+  }
+  try {
+    const list100 = await fetchPonsList(PONS_API_100, signal);
+    if (list100?.length) return list100;
+  } catch {
+    /* limit=100 blocked or failed — keep 20 */
+  }
+  return list20;
+}
+
+async function rpcBackfillLogs(signal) {
+  const blockHex = await rpc('eth_blockNumber');
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const latest = parseInt(blockHex, 16);
+  state.liveStatus.block = latest;
+  const fromAll = Math.max(0, latest - BACKFILL_BLOCKS);
+  const jobs = [
+    { address: FACTORY_V2, topic: TOPIC_V2, style: 'v2' },
+    { address: FACTORY_RECENT, topic: TOPIC_V1STYLE, style: 'v1style' },
+  ];
+  const decoded = [];
+  for (const job of jobs) {
+    for (let start = fromAll; start <= latest; start += BACKFILL_CHUNK) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      const end = Math.min(latest, start + BACKFILL_CHUNK - 1);
+      try {
+        const logs = await rpc('eth_getLogs', [{
+          address: job.address,
+          fromBlock: `0x${start.toString(16)}`,
+          toBlock: `0x${end.toString(16)}`,
+          topics: [job.topic],
+        }]);
+        for (const log of logs || []) {
+          const ev = decodeTokenLaunchedLog(log, job.style);
+          if (!ev.token) continue;
+          decoded.push(ev);
+        }
+      } catch (e) {
+        if (e.code === 429 || /429/.test(String(e.message))) break;
+        /* soft-fail per chunk */
+      }
+    }
+  }
+  if (!decoded.length) return 0;
+  const fresh = decoded.map((ev) => ({
+    token: ev.token,
+    name: 'Unknown',
+    symbol: '???',
+    factory: ev.factory,
+    deployer: ev.deployer,
+    pool: ev.curve,
+    pairToken: ev.pairToken,
+    transactionHash: ev.transactionHash,
+    blockNumber: ev.blockNumber,
+    launchedAt: null,
+    graduated: false,
+    _live: true,
+  }));
+  return mergeLaunches(fresh, { flash: true, notify: true });
+}
+
+/** One-time bootstrap from static /feed/*.json cache. Never wipes Live rows. */
+async function bootstrapFeed() {
   const reqId = ++feedReqId;
   if (feedAbort) {
     try { feedAbort.abort(); } catch { /* ignore */ }
@@ -1354,7 +1435,6 @@ async function refreshData(manual = false) {
   feedAbort = new AbortController();
   const { signal } = feedAbort;
   state.refreshing = true;
-  if (manual) render();
   try {
     const [launchesDoc, meta, safe, quotes] = await Promise.all([
       loadJson('launches.json', signal),
@@ -1367,13 +1447,13 @@ async function refreshData(manual = false) {
     const list = Array.isArray(launchesDoc?.launches)
       ? launchesDoc.launches
       : (Array.isArray(launchesDoc) ? launchesDoc : []);
-    // Merge feed into state so Live-only rows are not wiped
     applyFeedLaunches(list);
     state.meta = meta || { updatedAt: launchesDoc?.updatedAt };
     state.safe = safe;
     state.loading = false;
     state.error = null;
     state.clientFetchedAt = new Date().toISOString();
+    feedBootstrapped = true;
     state.pulse = true;
     setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
     maybeDefaultStocks();
@@ -1387,6 +1467,69 @@ async function refreshData(manual = false) {
       render();
     }
   }
+}
+
+/**
+ * Self-sufficient client refresh (browser-only):
+ * 1) Try Pons API limit=20 (and limit=100 if CORS allows)
+ * 2) If CORS/network blocks → wider RPC eth_getLogs backfill on factories
+ * Soft-fail; never wipe Live rows.
+ */
+async function refreshLiveData(manual = false) {
+  const reqId = ++clientRefreshId;
+  if (feedAbort) {
+    try { feedAbort.abort(); } catch { /* ignore */ }
+  }
+  feedAbort = new AbortController();
+  const { signal } = feedAbort;
+  state.refreshing = true;
+  if (manual) render();
+  try {
+    const pons = await tryFetchPons(signal);
+    if (reqId !== clientRefreshId) return;
+    if (pons) {
+      const before = state.launches.length;
+      const added = mergeLaunches(
+        pons.map((x) => ({ ...x, _live: true })),
+        { flash: true, notify: true },
+      );
+      if (added > 0 || state.launches.length !== before) {
+        state.liveStatus.lastEventAt = new Date().toISOString();
+      }
+      touchFreshness();
+      state.pulse = true;
+      setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
+      state.error = null;
+      return;
+    }
+    // CORS / network blocked Pons — wider RPC log backfill
+    const added = await rpcBackfillLogs(signal);
+    if (reqId !== clientRefreshId) return;
+    touchFreshness();
+    if (added > 0) {
+      state.liveStatus.lastEventAt = new Date().toISOString();
+      state.pulse = true;
+      setTimeout(() => { state.pulse = false; updateLivePill(); }, 900);
+    }
+    state.error = null;
+  } catch (e) {
+    if (e.name === 'AbortError' || reqId !== clientRefreshId) return;
+    // Soft-fail: keep existing Live / bootstrapped rows
+  } finally {
+    if (reqId === clientRefreshId) {
+      state.refreshing = false;
+      render();
+    }
+  }
+}
+
+/** Manual refresh: self-sufficient path; re-bootstrap static only if never loaded. */
+async function refreshData(manual = false) {
+  if (!feedBootstrapped && !state.launches.length) {
+    await bootstrapFeed();
+    if (!feedBootstrapped && !state.launches.length) return;
+  }
+  await refreshLiveData(manual);
 }
 
 function markVisit() {
@@ -1424,7 +1567,7 @@ function startAutoRefresh() {
   refreshTimer = null;
   if (document.hidden) return;
   refreshTimer = setInterval(() => {
-    if (!document.hidden) refreshData(false);
+    if (!document.hidden) refreshLiveData(false);
   }, REFRESH_MS);
 }
 
@@ -1457,9 +1600,11 @@ async function boot() {
   });
   document.addEventListener('visibilitychange', onVisibilityChange);
   render();
-  await refreshData(false);
+  await bootstrapFeed();
   startAutoRefresh();
   if (state.live) startLive();
+  // Kick one self-sufficient refresh after bootstrap (Pons or RPC backfill)
+  refreshLiveData(false);
 }
 
 boot();

@@ -1,10 +1,8 @@
-name: Build, refresh data and deploy Pages
+name: Build and deploy Pages
 
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -32,19 +30,15 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Refresh launch data
-        id: refresh
-        continue-on-error: true
-        run: node scripts/refresh-data.mjs
 
-      - name: Require data file
+      - name: Require bootstrap feed
         run: |
           test -f public/feed/launches.json
           node -e "const d=require('./public/feed/launches.json'); if(!d.launches||!Array.isArray(d.launches)) process.exit(1); console.log('launches', d.launches.length)"
 
       - name: Build
         env:
-          STOCKCURVE_BASE: /stockcurve/
+          STOCKCURVE_BASE: /app/
         run: npm run build
 
       - name: Setup Pages

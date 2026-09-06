@@ -27,7 +27,7 @@ Use npm scripts: install, refresh, dev, build.
 ## Deploy
 
 Primary: force-push dist/ to gh-pages on stockcurve/app (`STOCKCURVE_BASE=/app/`).
-Browser feed refresh ~45s + Live mode; server republish about hourly.
+Browser keeps data fresh: Live RPC + auto-refresh every ~45s (Pons API, or wider RPC log backfill if CORS blocks). No server republish required.
 Root stockcurve.github.io Pages is currently locked/errored — do not spam pushes there.
 
 ## Disclaimer
