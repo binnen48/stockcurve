@@ -10,7 +10,6 @@ const LS_NOTIFY = 'stockcurve.notifyStocks';
 
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
 const PONS_API_20 = 'https://www.ponsfamily.com/api/pons-launches?limit=20';
-const FACTORY_V1 = '0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB';
 const FACTORY_V2 = '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e';
 const FACTORY_RECENT = '0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75';
 const TOPIC_V2 = '0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607';
@@ -75,8 +74,6 @@ const S = {
   safeFallback: 'Use only these official links — lookalikes are often phishing.',
   safeUnavailable: 'Safe links unavailable.',
   onCurve: 'On curve only',
-  topDeployers: 'Top deployers',
-  quoteMix: 'Quote mix',
   notifyBtn: 'Notify on stock launches',
   notifyOn: 'Stock alerts ON',
   notifyDenied: 'Notifications blocked',
@@ -119,7 +116,14 @@ let liveTimer = null;
 let searchDebounce = null;
 let searchFocusRestore = null;
 let liveBackoffUntil = 0;
+let liveBackoffMs = 0; // 18s → 36s → 60s cap on 429
+let liveRateLimited = false;
 let liveFromBlock = null;
+const LIVE_LOOKBACK = 6;
+const LIVE_MAX_SPAN = 12;
+const LIVE_HYDRATE_LIMIT = 3;
+const LIVE_BACKOFF_START = 18_000;
+const LIVE_BACKOFF_CAP = 60_000;
 let knownTokensAtBoot = new Set();
 let feedAbort = null;
 let feedReqId = 0;
@@ -290,12 +294,6 @@ function deployerCounts() {
   return m;
 }
 
-function topDeployers(n = 5) {
-  return [...deployerCounts().entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
-    .map(([addr, count]) => ({ addr, count }));
-}
 
 function quoteTickerCounts() {
   const m = new Map();
@@ -410,17 +408,6 @@ function stripStats() {
   return { ...c, graduated, newestAge, newestIso };
 }
 
-function quoteMix() {
-  const c = counts();
-  const total = Math.max(1, c.all);
-  const parts = [
-    { key: 'stocks', label: 'Stocks', n: c.stocks, color: 'var(--stocks)' },
-    { key: 'usdg', label: 'USDG', n: c.usdg, color: 'var(--usdg)' },
-    { key: 'eth', label: 'ETH', n: c.eth, color: 'var(--eth)' },
-    { key: 'other', label: 'Other', n: c.btc + c.unknown, color: '#64748b' },
-  ].filter((p) => p.n > 0);
-  return parts.map((p) => ({ ...p, pct: (p.n / total) * 100 }));
-}
 
 function isNewSinceVisit(L) {
   if (!state.lastVisit || !L.launchedAt) return false;
@@ -526,6 +513,13 @@ function liveStatusLabel() {
   const b = state.liveStatus.block;
   const last = state.liveStatus.lastEventAt;
   if (document.hidden) return 'Live · paused';
+  const coolMs = liveBackoffUntil - Date.now();
+  if (coolMs > 0) {
+    const secs = Math.max(1, Math.ceil(coolMs / 1000));
+    return liveRateLimited
+      ? `Live · cooling down · ${secs}s`
+      : `Live · retry in ${secs}s`;
+  }
   if (state.liveStatus.scanning) return b != null ? `Live · scanning · block ${b}` : 'Live · scanning';
   if (state.liveStatus.failCount >= 3) return 'Live · RPC issues';
   const parts = ['Live'];
@@ -534,23 +528,6 @@ function liveStatusLabel() {
   else parts.push('watching');
   return parts.join(' · ');
 }
-function renderQuoteMix() {
-  const mix = quoteMix();
-  if (!mix.length) return '';
-  const segs = mix.map((p) =>
-    `<div class="mix-seg" style="width:${p.pct.toFixed(2)}%;background:${p.color}" title="${esc(p.label)} ${p.n} (${p.pct.toFixed(1)}%)"></div>`
-  ).join('');
-  const legend = mix.map((p) =>
-    `<span class="mix-leg"><i style="background:${p.color}"></i>${esc(p.label)} ${p.pct.toFixed(0)}%</span>`
-  ).join('');
-  return `
-    <div class="quote-mix" aria-label="${esc(t('quoteMix'))}">
-      <div class="mix-label">${esc(t('quoteMix'))}</div>
-      <div class="mix-bar">${segs}</div>
-      <div class="mix-legend">${legend}</div>
-    </div>`;
-}
-
 function renderQuoteChips() {
   if (state.filter !== 'stocks' && state.filter !== 'all') return '';
   const ticks = quoteTickerCounts();
@@ -561,24 +538,6 @@ function renderQuoteChips() {
       ${ticks.map(([sym, n]) => `
         <button type="button" class="qchip ${state.quoteTicker === sym ? 'active' : ''}" data-quote="${esc(sym)}">${esc(sym)} <em>${n}</em></button>
       `).join('')}
-    </div>`;
-}
-
-function renderTopDeployers() {
-  const top = topDeployers(5);
-  if (!top.length) return '';
-  return `
-    <div class="panel" style="margin-top:14px">
-      <div class="panel-hd"><h2>${esc(t('topDeployers'))}</h2></div>
-      <div class="panel-bd">
-        <ol class="top-deps">
-          ${top.map((d) => `
-            <li>
-              <a href="https://robinhoodchain.blockscout.com/address/${esc(d.addr)}" target="_blank" rel="noopener noreferrer">${esc(shortAddr(d.addr))}</a>
-              <span class="dep-count">×${d.count}</span>
-            </li>`).join('')}
-        </ol>
-      </div>
     </div>`;
 }
 
@@ -1067,7 +1026,10 @@ async function hydrateBlockTimestamp(blockNumber) {
 
 async function pollLiveOnce() {
   if (!state.live || document.hidden) return;
-  if (Date.now() < liveBackoffUntil) return;
+  if (Date.now() < liveBackoffUntil) {
+    updateLivePill();
+    return;
+  }
   const myId = ++livePollId;
   state.liveStatus.scanning = true;
   updateLivePill();
@@ -1076,13 +1038,15 @@ async function pollLiveOnce() {
     if (myId !== livePollId || !state.live) return;
     const latest = parseInt(blockHex, 16);
     state.liveStatus.block = latest;
-    if (liveFromBlock == null) liveFromBlock = Math.max(0, latest - 8);
-    const from = liveFromBlock;
+    if (liveFromBlock == null) liveFromBlock = Math.max(0, latest - LIVE_LOOKBACK);
+    // Cap window so we never scan huge ranges after a long pause
+    const from = Math.max(liveFromBlock, Math.max(0, latest - LIVE_MAX_SPAN));
     const fromHex = `0x${from.toString(16)}`;
+    const toHex = `0x${latest.toString(16)}`;
 
+    // Prefer active factories only — drop noisy FACTORY_V1 to cut rate-limit pressure
     const jobs = [
       { address: FACTORY_V2, topic: TOPIC_V2, style: 'v2' },
-      { address: FACTORY_V1, topic: TOPIC_V1STYLE, style: 'v1style' },
       { address: FACTORY_RECENT, topic: TOPIC_V1STYLE, style: 'v1style' },
     ];
 
@@ -1093,7 +1057,7 @@ async function pollLiveOnce() {
         const logs = await rpc('eth_getLogs', [{
           address: job.address,
           fromBlock: fromHex,
-          toBlock: 'latest',
+          toBlock: toHex,
           topics: [job.topic],
         }]);
         for (const log of logs || []) {
@@ -1109,13 +1073,29 @@ async function pollLiveOnce() {
 
     if (myId !== livePollId || !state.live) return;
 
+    // Batch/limit block timestamp hydrates (avoid eth_getBlockByNumber hammering)
+    const blockTsCache = new Map();
+    let hydrateLeft = LIVE_HYDRATE_LIMIT;
+    async function hydrateCached(bn) {
+      if (bn == null) return null;
+      if (blockTsCache.has(bn)) return blockTsCache.get(bn);
+      if (hydrateLeft <= 0) return null;
+      hydrateLeft -= 1;
+      const iso = await hydrateBlockTimestamp(bn);
+      blockTsCache.set(bn, iso);
+      return iso;
+    }
+
     const fresh = [];
     for (const ev of decoded) {
       const key = ev.token.toLowerCase();
       const exists = state.launches.some((x) => (x.token || '').toLowerCase() === key);
       if (exists && knownTokensAtBoot.has(key)) continue;
       let launchedAt = null;
-      if (!exists) launchedAt = await hydrateBlockTimestamp(ev.blockNumber);
+      if (!exists) {
+        launchedAt = await hydrateCached(ev.blockNumber);
+        if (!launchedAt) launchedAt = new Date().toISOString();
+      }
       if (myId !== livePollId || !state.live) return;
       fresh.push({
         token: ev.token,
@@ -1136,11 +1116,13 @@ async function pollLiveOnce() {
 
     const added = mergeLaunches(fresh, { flash: true, notify: true });
     if (myId !== livePollId || !state.live) return;
-    liveFromBlock = latest;
+    liveFromBlock = latest + 1;
     state.liveStatus.lastError = null;
     state.liveStatus.failCount = 0;
+    liveBackoffMs = 0;
+    liveRateLimited = false;
 
-    // Optional Pons HTTP (CORS may block)
+    // Optional Pons HTTP (CORS may block) — at most once per successful poll
     try {
       const res = await fetch(PONS_API_20, { cache: 'no-store' });
       if (myId !== livePollId || !state.live) return;
@@ -1170,13 +1152,19 @@ async function pollLiveOnce() {
     if (myId !== livePollId) return;
     state.liveStatus.lastError = e.message || String(e);
     state.liveStatus.failCount = (state.liveStatus.failCount || 0) + 1;
-    if (e.code === 429 || /429/.test(String(e.message))) {
-      liveBackoffUntil = Date.now() + 60_000;
+    const is429 = e.code === 429 || /429/.test(String(e.message));
+    if (is429) {
+      liveRateLimited = true;
+      liveBackoffMs = liveBackoffMs > 0
+        ? Math.min(LIVE_BACKOFF_CAP, liveBackoffMs * 2)
+        : LIVE_BACKOFF_START;
+      liveBackoffUntil = Date.now() + liveBackoffMs;
+      // Calm status pill only — no spammy toasts on rate limits
     } else {
       liveBackoffUntil = Date.now() + 20_000;
-    }
-    if (state.liveStatus.failCount >= LIVE_FAIL_TOAST_AFTER) {
-      showToast(t('liveRpcFail'));
+      if (state.liveStatus.failCount >= LIVE_FAIL_TOAST_AFTER) {
+        showToast(t('liveRpcFail'));
+      }
     }
     updateLivePill();
   } finally {
