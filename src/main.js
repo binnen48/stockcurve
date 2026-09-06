@@ -83,6 +83,7 @@ const S = {
   liveOff: 'Feed only · Live off',
   liveRpcFail: 'Live RPC failing — retrying with backoff. Feed refresh still works.',
   toastDismiss: 'Dismiss',
+  fomoTitle: 'New vs stocks',
 };
 
 const state = {
@@ -124,6 +125,7 @@ const LIVE_MAX_SPAN = 12;
 const LIVE_HYDRATE_LIMIT = 3;
 const LIVE_BACKOFF_START = 18_000;
 const LIVE_BACKOFF_CAP = 60_000;
+const FOMO_WINDOW_MS = 2 * 60 * 60 * 1000;
 let knownTokensAtBoot = new Set();
 let feedAbort = null;
 let feedReqId = 0;
@@ -240,6 +242,7 @@ function markLiveFlash(key) {
   const tid = setTimeout(() => {
     state.liveFlash.delete(key);
     liveFlashTimers.delete(key);
+    updateFomoStrip();
   }, 12000);
   liveFlashTimers.set(key, tid);
 }
@@ -528,6 +531,92 @@ function liveStatusLabel() {
   else parts.push('watching');
   return parts.join(' · ');
 }
+
+function recentStockQuoted(limit = 3) {
+  const cutoff = Date.now() - FOMO_WINDOW_MS;
+  return state.launches
+    .filter((L) => {
+      if (L.quoteClass !== 'stocks') return false;
+      const ts = Date.parse(L.launchedAt);
+      return Number.isFinite(ts) && ts >= cutoff;
+    })
+    .sort((a, b) => (Date.parse(b.launchedAt) || 0) - (Date.parse(a.launchedAt) || 0))
+    .slice(0, limit);
+}
+
+function shouldShowFomoStrip() {
+  // Show when Live is on or recent stock-quoted launches exist; hide if none.
+  const items = recentStockQuoted(3);
+  if (!items.length) return false;
+  return state.live || items.length > 0;
+}
+
+function renderFomoStrip() {
+  if (!shouldShowFomoStrip()) return '';
+  const items = recentStockQuoted(3);
+  if (!items.length) return '';
+  return `
+    <div class="fomo-strip" id="fomo-strip" aria-label="${esc(t('fomoTitle'))}">
+      <div class="fomo-strip-title">${esc(t('fomoTitle'))}</div>
+      <div class="fomo-strip-items">
+        ${items.map((L) => {
+          const tok = (L.token || '').toLowerCase();
+          const flash = state.liveFlash.has(tok) ? 'is-flash' : '';
+          const sym = displaySymbol(L);
+          const vs = (L.quoteSymbol && L.quoteSymbol !== 'UNK') ? L.quoteSymbol : '?';
+          return `<button type="button" class="fomo-item ${flash}" data-fomo-token="${esc(L.token)}" data-fomo-symbol="${esc(sym)}" title="Jump to $${esc(sym)}">$${esc(sym)} · vs ${esc(vs)} · ${esc(relative(L.launchedAt))}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function updateFomoStrip() {
+  const host = document.getElementById('fomo-strip-host');
+  if (!host) return;
+  const was = document.activeElement;
+  const focusTok = was?.dataset?.fomoToken || null;
+  host.innerHTML = renderFomoStrip();
+  bindFomoStrip(host);
+  if (focusTok) {
+    const btn = host.querySelector(`[data-fomo-token="${CSS.escape(focusTok)}"]`);
+    btn?.focus();
+  }
+}
+
+function focusFomoLaunch(token, symbol) {
+  const tok = (token || '').toLowerCase();
+  const findCard = () => [...document.querySelectorAll('.card[data-token]')].find(
+    (el) => (el.dataset.token || '').toLowerCase() === tok,
+  );
+  const highlight = (card) => {
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('is-fomo-focus');
+    setTimeout(() => card.classList.remove('is-fomo-focus'), 1600);
+  };
+  let card = findCard();
+  if (card) {
+    highlight(card);
+    return;
+  }
+  // Not in current view — set search to symbol so the card appears
+  state.q = symbol || state.q;
+  if (state.filter !== 'stocks' && state.filter !== 'all') state.filter = 'stocks';
+  state.quoteTicker = '';
+  render();
+  requestAnimationFrame(() => {
+    highlight(findCard());
+  });
+}
+
+function bindFomoStrip(scope = document) {
+  scope.querySelectorAll('.fomo-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      focusFomoLaunch(btn.dataset.fomoToken || '', btn.dataset.fomoSymbol || '');
+    });
+  });
+}
+
 function renderQuoteChips() {
   if (state.filter !== 'stocks' && state.filter !== 'all') return '';
   const ticks = quoteTickerCounts();
@@ -604,6 +693,7 @@ function render() {
       <div class="layout layout-minimal">
         <main class="panel">
           <div class="panel-bd">
+            <div id="fomo-strip-host">${renderFomoStrip()}</div>
             <div class="controls">
               <div class="filters" role="tablist" aria-label="Quote class filter">
                 ${filterBtns.map(([f, label, tip]) => `
@@ -830,6 +920,7 @@ function bindUi(app) {
   }
 
   bindListActions(app);
+  bindFomoStrip(app);
 }
 
 function classifyPair(pairToken) {
@@ -1147,6 +1238,7 @@ async function pollLiveOnce() {
       render();
     } else {
       updateLivePill();
+      updateFomoStrip();
     }
   } catch (e) {
     if (myId !== livePollId) return;

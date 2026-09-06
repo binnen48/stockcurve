@@ -574,3 +574,56 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 .meta-bar .pill { font-size: .74rem; }
 .disclaimer { margin-top: 14px; font-size: .68rem; }
 .filter-btn { min-height: 34px; }
+
+
+/* FOMO: New vs stocks strip */
+.fomo-strip {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.06);
+}
+.fomo-strip-title {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--stocks);
+}
+.fomo-strip-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fomo-item {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.fomo-item:hover {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.1);
+}
+.fomo-item.is-flash {
+  border-color: rgba(74, 222, 128, 0.55);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.25), 0 0 16px rgba(74, 222, 128, 0.18);
+  animation: fomo-pulse 1.1s ease-out 2;
+}
+@keyframes fomo-pulse {
+  0% { background: rgba(74, 222, 128, 0.22); }
+  100% { background: rgba(0, 0, 0, 0.28); }
+}
+.card.is-fomo-focus {
+  outline: 2px solid rgba(251, 191, 36, 0.65);
+  outline-offset: 2px;
+  border-color: rgba(251, 191, 36, 0.55);
+}
+#fomo-strip-host:empty { display: none; }
