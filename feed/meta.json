@@ -1,0 +1,118 @@
+{
+  "updatedAt": "2026-09-06T05:56:19.049Z",
+  "source": {
+    "recent100": "https://www.ponsfamily.com/api/pons-launches?limit=100",
+    "recent20": "https://www.ponsfamily.com/api/pons-launches?limit=20",
+    "historical": "https://www.ponsfamily.com/api/pons-launches",
+    "rpc": "https://rpc.mainnet.chain.robinhood.com",
+    "bitqueryDocs": "https://docs.bitquery.io/docs/blockchain/robinhood/pons-api/"
+  },
+  "factories": {
+    "v1": "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
+    "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+    "recentApi": "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75",
+    "tokenLaunchedTopicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+    "tokenLaunchedTopicRecent": "0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a",
+    "tokenLaunchedSigV2": "TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)"
+  },
+  "counts": {
+    "launches": 500,
+    "recent100Fetched": 100,
+    "recent20Fetched": 34,
+    "historicalFetched": 2157,
+    "ethGetLogsTokenLaunched": 282,
+    "receiptPairTokenEnrich": {
+      "ok": 0,
+      "fail": 0,
+      "attempted": 0
+    },
+    "stubMetadataHydrate": {
+      "ok": 80,
+      "fail": 0,
+      "attempted": 80
+    },
+    "byQuoteClass": {
+      "eth": 420,
+      "usdg": 46,
+      "stocks": 33,
+      "btc": 1,
+      "unknown": 0
+    },
+    "stockQuoted": 33,
+    "usdgQuoted": 46,
+    "graduated": 320
+  },
+  "rpc": {
+    "ok": true,
+    "chainId": 4663,
+    "blockNumber": 55744304,
+    "factories": {
+      "v1": "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
+      "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+      "recentApi": "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75",
+      "all": [
+        "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
+        "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+        "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75"
+      ]
+    },
+    "tokenLaunchedTopicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+    "note": "RPC reachable. Quote class from pairToken registry; eth_getLogs TokenLaunched enrichment attempted when available."
+  },
+  "ethGetLogs": {
+    "ok": true,
+    "count": 282,
+    "fromBlock": 55723509,
+    "toBlock": 55743509,
+    "topicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+    "topicRecent": "0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a",
+    "factories": {
+      "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+      "recent": "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75"
+    },
+    "counts": {
+      "v2": 282,
+      "recent": 0
+    },
+    "softErrors": [],
+    "samples": [
+      {
+        "token": "0xb8b74cd34a175dd31002dd4bc2c22a3e98a92030",
+        "pairToken": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "deployer": "0x29bfbd1e107e8d4db0b88593ab2e9fe4fa942173",
+        "tx": "0xa7a7adc782e5d143f65890317115cf2ca6878652cd5725dba1b47ea5359aa5c0",
+        "style": "v2"
+      },
+      {
+        "token": "0xa4022b3236ffa385ea99af6e5830c228f4a37d7a",
+        "pairToken": "0x1b0e319c6a659f002271b69db8a7df2f911c153e",
+        "deployer": "0x6525a787a0d82434980194d1a421e712fe5ba12b",
+        "tx": "0xa7bbbe495904c6da59de61b192ccf00dcaca90ef967067e4bcfbcfee15de6ce2",
+        "style": "v2"
+      },
+      {
+        "token": "0x3d164519ac0d25753d8c5053e8f55077f2d741f6",
+        "pairToken": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
+        "deployer": "0x231913c9923157b064cffe46c1aac103ae190261",
+        "tx": "0x7d57a35cb4a08222d973bd9e39e2181f493fc70eeacf0641648b654f875cb073",
+        "style": "v2"
+      },
+      {
+        "token": "0x7c007a8024487328c4ae74f47e22968b78e165f9",
+        "pairToken": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "deployer": "0xeeefff8ce2710fa490e0fcb794235e873c252d2e",
+        "tx": "0x4d6d92c4a0c7dacb6c88217b3feff1aab6841ee7df46790e83c53b04ae95e815",
+        "style": "v2"
+      },
+      {
+        "token": "0xc83513cb926797957ee270fd03275445a20e78c8",
+        "pairToken": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "deployer": "0xac4f71baf8e914ad130f4c29eceaf65bc11bb8db",
+        "tx": "0x1bab0c39e5731485985c01ea8fcb2dfa9cf2cd734576ccf6ec6902d0dfbf7ae9",
+        "style": "v2"
+      }
+    ]
+  },
+  "errors": [],
+  "disclaimer": "StockCurve is an independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice."
+}
