@@ -87,6 +87,8 @@ const S = {
   fomoTitle: 'New vs stocks',
   heatTitle: 'Hottest quote stocks',
   twinLead: 'Similar names vs different stocks',
+  firstStockLead: 'First vs stocks today',
+  deployerFlip: 'Deployer switched to stock quotes',
 };
 
 const state = {
@@ -402,6 +404,60 @@ function findTwinCluster() {
   return null;
 }
 
+
+/** Local calendar-day start (browser timezone). */
+function localDayStartMs(now = Date.now()) {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** Earliest stock-quoted launch since local midnight, or null. */
+function firstStockToday() {
+  const start = localDayStartMs();
+  let best = null;
+  let bestTs = Infinity;
+  for (const L of state.launches) {
+    if (L.quoteClass !== 'stocks') continue;
+    const ts = Date.parse(L.launchedAt);
+    if (!Number.isFinite(ts) || ts < start) continue;
+    if (ts < bestTs) {
+      bestTs = ts;
+      best = L;
+    }
+  }
+  return best;
+}
+
+/**
+ * Deployers whose newest launch is stock-quoted and who also have an older eth-quoted launch.
+ * Returns Map<deployerLower, newestStockTokenLower>.
+ */
+function deployerStockFlips() {
+  const byDep = new Map();
+  for (const L of state.launches) {
+    const d = (L.deployer || '').toLowerCase();
+    if (!d) continue;
+    if (!byDep.has(d)) byDep.set(d, []);
+    byDep.get(d).push(L);
+  }
+  const flips = new Map();
+  for (const [d, rows] of byDep) {
+    if (rows.length < 2) continue;
+    const sorted = rows
+      .slice()
+      .sort((a, b) => (Date.parse(b.launchedAt) || 0) - (Date.parse(a.launchedAt) || 0));
+    const newest = sorted[0];
+    if (!newest || newest.quoteClass !== 'stocks') continue;
+    const hasOlderEth = sorted.slice(1).some((x) => x.quoteClass === 'eth');
+    if (!hasOlderEth) continue;
+    const tok = (newest.token || '').toLowerCase();
+    if (!tok) continue;
+    flips.set(d, tok);
+  }
+  return flips;
+}
+
 function parseHash() {
   const raw = (location.hash || '').replace(/^#/, '');
   if (!raw) return;
@@ -535,7 +591,7 @@ function progressBar(L) {
   return `<div class="grad-bar" title="${pct.toFixed(1)}%"><div class="grad-fill" style="width:${pct}%"></div><span>${pct.toFixed(0)}%</span></div>`;
 }
 
-function renderCard(L, depCounts) {
+function renderCard(L, depCounts, flipMap = null) {
   const badgeClass = ['stocks', 'usdg', 'eth', 'btc'].includes(L.quoteClass) ? L.quoteClass : 'unknown';
   const initials = esc((displaySymbol(L) || '?').slice(0, 2).replace('…', '?'));
   const tok = (L.token || '').toLowerCase();
@@ -543,8 +599,10 @@ function renderCard(L, depCounts) {
   const isNew = isNewSinceVisit(L);
   const isLiveFlash = state.liveFlash.has(tok);
   const dep = L.deployer || '';
-  const depN = depCounts.get(dep.toLowerCase()) || 0;
+  const depKey = dep.toLowerCase();
+  const depN = depCounts.get(depKey) || 0;
   const swarm = depN >= 3;
+  const flipped = flipMap && depKey && flipMap.get(depKey) === tok;
   const avatar = L.logoUrl
     ? `<img class="avatar" src="${esc(L.logoUrl)}" alt="" loading="lazy" data-ph="${initials}" onerror="this.outerHTML='<div class=\'avatar ph\'>'+this.dataset.ph+'</div>'" />`
     : `<div class="avatar ph">${initials}</div>`;
@@ -568,6 +626,7 @@ function renderCard(L, depCounts) {
                 ${isLiveFlash ? `<span class="badge live">${esc(t('liveBadge'))}</span>` : ''}
                 ${isNew && !isLiveFlash ? `<span class="badge new">${esc(t('newBadge'))}</span>` : ''}
                 ${swarm ? `<span class="badge swarm" title="${depN} launches by this deployer">${esc(t('swarm'))} ×${depN}</span>` : ''}
+                ${flipped ? `<span class="badge flip" title="${esc(t('deployerFlip'))}">${esc(t('deployerFlip'))}</span>` : ''}
                 ${L.graduated ? `<span class="badge grad">${esc(t('graduated'))}</span>` : ''}
               </div>
               <div class="sym">$${esc(displaySymbol(L))} · ${esc(age)}</div>
@@ -663,6 +722,33 @@ function renderFomoStrip() {
     </div>`;
 }
 
+function renderFirstStockLine() {
+  const L = firstStockToday();
+  if (!L) return '';
+  const sym = displaySymbol(L);
+  const vs = (L.quoteSymbol && L.quoteSymbol !== 'UNK') ? L.quoteSymbol : '?';
+  const label = `${t('firstStockLead')}: $${sym} · vs ${vs} · ${relative(L.launchedAt)}`;
+  return `
+    <div class="first-stock" id="first-stock" role="note">
+      <button type="button" class="first-stock-btn" data-first-token="${esc(L.token)}" data-first-symbol="${esc(sym)}" title="Jump to $${esc(sym)}">${esc(label)}</button>
+    </div>`;
+}
+
+function updateFirstStockLine() {
+  const host = document.getElementById('first-stock-host');
+  if (!host) return;
+  host.innerHTML = renderFirstStockLine();
+  bindFirstStockLine(host);
+}
+
+function bindFirstStockLine(scope = document) {
+  scope.querySelectorAll('.first-stock-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      focusFomoLaunch(btn.dataset.firstToken || '', btn.dataset.firstSymbol || '');
+    });
+  });
+}
+
 function updateFomoStrip() {
   const host = document.getElementById('fomo-strip-host');
   if (!host) return;
@@ -674,6 +760,7 @@ function updateFomoStrip() {
     const btn = host.querySelector(`[data-fomo-token="${CSS.escape(focusTok)}"]`);
     btn?.focus();
   }
+  updateFirstStockLine();
   updateTwinAlert();
   updateQuoteHeat();
 }
@@ -787,14 +874,15 @@ function renderQuoteChips() {
     </div>`;
 }
 
-function renderListArea(rows, c, depCounts) {
+function renderListArea(rows, c, depCounts, flipMap = null) {
   if (state.loading) return `<div class="loading">${esc(t('loading'))}</div>`;
   if (state.error) return `<div class="error">${esc(state.error)}</div>`;
   // Don't show stocks empty wrongly when stock-quoted count > 0 but other filters hide rows
   if (rows.length === 0) {
     return `<div class="empty ${state.filter === 'stocks' && c.stocks === 0 ? 'empty-stocks' : ''}">${esc(emptyMessage(c))}</div>`;
   }
-  return `<div class="list" id="launch-list">${rows.map((L) => renderCard(L, depCounts)).join('')}</div>`;
+  const flips = flipMap || deployerStockFlips();
+  return `<div class="list" id="launch-list">${rows.map((L) => renderCard(L, depCounts, flips)).join('')}</div>`;
 }
 
 function render() {
@@ -851,6 +939,7 @@ function render() {
         <main class="panel">
           <div class="panel-bd">
             <div id="fomo-strip-host">${renderFomoStrip()}</div>
+            <div id="first-stock-host">${renderFirstStockLine()}</div>
             <div id="twin-alert-host">${renderTwinAlert()}</div>
             <div class="controls">
               <div class="filters" role="tablist" aria-label="Quote class filter">
@@ -920,7 +1009,8 @@ function updateResultsOnly() {
   const c = counts();
   const rows = filtered();
   const depCounts = deployerCounts();
-  if (root) root.innerHTML = renderListArea(rows, c, depCounts);
+  const flips = deployerStockFlips();
+  if (root) root.innerHTML = renderListArea(rows, c, depCounts, flips);
   const shown = document.querySelector('.meta-bar .pill:last-child');
   if (shown) shown.textContent = `${rows.length} ${t('shown')}`;
   bindListActions(document);
@@ -1080,6 +1170,7 @@ function bindUi(app) {
 
   bindListActions(app);
   bindFomoStrip(app);
+  bindFirstStockLine(app);
   bindTwinAlert(app);
   bindQuoteHeat(app);
 }

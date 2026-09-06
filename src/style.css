@@ -719,3 +719,43 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 @media (max-width: 640px) {
   .quote-heat, .twin-alert { font-size: 0.7rem; }
 }
+
+
+/* First vs stocks today (one-line) */
+.first-stock {
+  margin: 0 0 10px;
+  padding: 5px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.04);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+.first-stock-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.first-stock-btn:hover { color: var(--stocks); }
+#first-stock-host:empty { display: none; }
+
+/* Quiet deployer ETH→stocks flip chip */
+.badge.flip {
+  background: rgba(167, 139, 250, 0.10);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  font-weight: 500;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+}
+@media (max-width: 640px) {
+  .first-stock, .first-stock-btn { font-size: 0.7rem; }
+}
