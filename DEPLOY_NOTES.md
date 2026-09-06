@@ -8,7 +8,7 @@ Legacy mirror URL: https://binnen48.github.io/stockcurve/
 ## Current
 
 - Site is published from the `gh-pages` branch (legacy Pages source).
-- `main` holds the Vite app, `scripts/refresh-data.mjs`, and seeded `public/data/*.json`.
+- `main` holds the Vite app, `scripts/refresh-data.mjs`, and seeded `public/feed/*.json`.
 
 ## Switching to Actions → Pages
 

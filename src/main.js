@@ -1,4 +1,4 @@
-const DATA_BASE = `${import.meta.env.BASE_URL}data`;
+const DATA_BASE = `${import.meta.env.BASE_URL}feed`;
 const REFRESH_MS = 90_000;
 const LS_LANG = 'stockcurve.lang';
 const LS_WATCH = 'stockcurve.watchlist';
@@ -39,7 +39,7 @@ const I18N = {
     whyTitle: 'Why StockCurve?',
     whyBody:
       'Most Pons tools track $PONS burns. StockCurve watches <strong style="color:var(--text)">which asset a launch is quoted against</strong> — NVDA/TSLA/… tokenized stocks, USDG, or ETH — so RWA-quote discovery is one filter away.',
-    whyBody2: 'Public static JSON under <code>/data/</code>. No login. No API keys. Auto-refresh every 90s in the browser; server data refreshes via GitHub Actions.',
+    whyBody2: 'Public static JSON under <code>/feed/</code>. No login. No API keys. Auto-refresh every 90s in the browser; server data refreshes via GitHub Actions.',
     disclaimer:
       '<strong>Disclaimer:</strong> StockCurve is an independent, free community tool. It is <em>not</em> affiliated with Robinhood, Pons Labs, FOMO, or any token issuer. Nothing here is financial, investment, or trading advice. Memecoins and tokenized assets are highly risky — do your own research and verify every URL.',
     footer: 'StockCurve · Robinhood Chain (4663)',
@@ -93,7 +93,7 @@ const I18N = {
     whyTitle: 'Waarom StockCurve?',
     whyBody:
       'De meeste Pons-tools volgen $PONS-burns. StockCurve kijkt naar <strong style="color:var(--text)">tegen welk asset een launch wordt gequote</strong> — NVDA/TSLA/… aandelen, USDG of ETH — zodat RWA-ontdekking één filter weg is.',
-    whyBody2: 'Publieke JSON onder <code>/data/</code>. Geen login. Geen API-keys. Browser auto-refresh elke 90s; serverdata via GitHub Actions.',
+    whyBody2: 'Publieke JSON onder <code>/feed/</code>. Geen login. Geen API-keys. Browser auto-refresh elke 90s; serverdata via GitHub Actions.',
     disclaimer:
       '<strong>Disclaimer:</strong> StockCurve is een onafhankelijke, gratis communitytool. Het is <em>niet</em> gelieerd aan Robinhood, Pons Labs, FOMO of enige tokenuitgever. Niets hier is financieel of beleggingsadvies. Memecoins en getokeniseerde assets zijn zeer risicovol — doe je eigen research en verifieer elke URL.',
     footer: 'StockCurve · Robinhood Chain (4663)',

@@ -39,8 +39,8 @@ jobs:
 
       - name: Require data file
         run: |
-          test -f public/data/launches.json
-          node -e "const d=require('./public/data/launches.json'); if(!d.launches||!Array.isArray(d.launches)) process.exit(1); console.log('launches', d.launches.length)"
+          test -f public/feed/launches.json
+          node -e "const d=require('./public/feed/launches.json'); if(!d.launches||!Array.isArray(d.launches)) process.exit(1); console.log('launches', d.launches.length)"
 
       - name: Build
         env:

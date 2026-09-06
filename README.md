@@ -11,14 +11,14 @@ Unique niche: RWA-quote discovery + official Safe Links panel. No login. No API 
 - Dark SPA (vanilla JS + Vite): All | Stocks | USDG | ETH | Watchlist filters, search, sort
 - Client auto-refresh every 90s; NL/EN; watchlist; copy CA; shareable hash; keyboard shortcuts
 - Graduation bars, stats strip, deployer counts, PWA manifest
-- Public static JSON under /data/ (no user keys)
+- Public static JSON under /feed/ (no user keys)
 
 ## Data files
 
-- `public/data/launches.json` — launches + quote classification
-- `public/data/quotes.json` — quote registry
-- `public/data/safe-links.json` — official links
-- `public/data/meta.json` — updatedAt + counts
+- `public/feed/launches.json` — launches + quote classification
+- `public/feed/quotes.json` — quote registry
+- `public/feed/safe-links.json` — official links
+- `public/feed/meta.json` — updatedAt + counts
 
 Refresh: `scripts/refresh-data.mjs`
 

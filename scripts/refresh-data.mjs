@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * StockCurve data refresh — free public sources only (Pons Family API + static quote registry + optional RPC logs).
- * Writes public/data/{launches,quotes,safe-links,meta}.json
+ * Writes public/feed/{launches,quotes,safe-links,meta}.json
  *
  * Factories (Robinhood Chain 4663):
  *   v1 (superseded): 0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB
@@ -824,7 +824,7 @@ async function main() {
     console.warn('Completed with soft errors:', errors);
     if (launches.length === 0) process.exit(1);
   }
-  console.log('Wrote public/data/*.json');
+  console.log('Wrote public/feed/*.json');
 }
 
 main().catch((e) => {
