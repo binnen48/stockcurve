@@ -99,8 +99,11 @@ h1 {
 .hero-actions {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  max-width: 100%;
 }
 .btn {
   appearance: none;
@@ -557,7 +560,14 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
 .top-deps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .top-deps li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem}
 .grad-bar span{font-size:.65rem;white-space:nowrap}
-@media (max-width:640px){.hero-actions{width:100%;margin-left:0;flex-wrap:wrap}}
+@media (max-width:640px){
+  .hero-actions{width:100%;margin-left:0;flex-wrap:wrap;justify-content:flex-start}
+  .fomo-strip{padding:8px;overflow-wrap:anywhere}
+  .fomo-strip-title{font-size:0.72rem;line-height:1.35}
+  .fomo-item{font-size:0.7rem;padding:6px 8px;max-width:100%;overflow-wrap:anywhere}
+  .brand{max-width:100%}
+  .meta-bar{flex-wrap:wrap}
+}
 
 
 /* Minimal clarity */
@@ -583,6 +593,8 @@ a.chip-link:hover, button.chip-link:hover { background: rgba(56,189,248,.08); te
   border: 1px solid rgba(251, 191, 36, 0.28);
   border-radius: 10px;
   background: rgba(251, 191, 36, 0.06);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .fomo-strip-title {
   margin: 0 0 6px;

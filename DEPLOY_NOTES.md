@@ -1,6 +1,6 @@
 # Deploy notes
 
-Primary path: independent host with Vite base `/`. Legacy Pages mirror kept for compatibility.
+Primary path: https://stockcurve.github.io/app/ via stockcurve/app gh-pages (Vite base `/app/`).
 
 
 Legacy mirror URL: https://binnen48.github.io/stockcurve/
@@ -14,7 +14,7 @@ Legacy mirror URL: https://binnen48.github.io/stockcurve/
 
 1. Copy `ops/pages.workflow.yml` → `.github/workflows/pages.yml` using a credential that includes the GitHub `workflow` OAuth scope (or create the file in the GitHub web UI).
 2. In repo Settings → Pages, set source to **GitHub Actions**.
-3. The workflow refreshes Pons launch data about every 15 minutes, builds, and deploys.
+3. The workflow refreshes Pons launch data about hourly, builds, and deploys.
 
 ## Manual refresh + republish (no Actions)
 
@@ -24,3 +24,7 @@ npm run refresh
 npm run build
 # then publish dist/ to the gh-pages branch
 ```
+
+## Refresh cadence
+
+Browser feed refresh ~45s + Live mode; server republish about hourly.

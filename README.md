@@ -26,8 +26,9 @@ Use npm scripts: install, refresh, dev, build.
 
 ## Deploy
 
-Primary: force-push dist/ to gh-pages on stockcurve/stockcurve.github.io.
-Server feed refresh about every 15 minutes.
+Primary: force-push dist/ to gh-pages on stockcurve/app (`STOCKCURVE_BASE=/app/`).
+Browser feed refresh ~45s + Live mode; server republish about hourly.
+Root stockcurve.github.io Pages is currently locked/errored — do not spam pushes there.
 
 ## Disclaimer
 
@@ -35,5 +36,5 @@ Independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. N
 
 ## Vite base
 
-Default build base is / for https://stockcurve.github.io/app/
+Canonical: https://stockcurve.github.io/app/ (build with STOCKCURVE_BASE=/app/).
 Legacy mirror: https://binnen48.github.io/stockcurve/
