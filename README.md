@@ -40,3 +40,10 @@ GitHub Actions (`.github/workflows/pages.yml`): install deps, refresh data (abou
 ## Disclaimer
 
 Independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice. Verify every URL.
+
+## Deploy status
+
+Public site: **https://binnen48.github.io/stockcurve/**
+
+Current publish path: `gh-pages` branch (static build). The Actions workflow source lives at `ops/pages.workflow.yml` — copy it to `.github/workflows/pages.yml` when a token with the `workflow` scope is available to switch to Actions → Pages with a ~15 minute data refresh cron.
+
