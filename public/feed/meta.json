@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T04:08:46.101Z",
+  "updatedAt": "2026-09-06T04:22:57.884Z",
   "source": {
     "recent100": "https://www.ponsfamily.com/api/pons-launches?limit=100",
     "recent20": "https://www.ponsfamily.com/api/pons-launches?limit=20",
@@ -17,19 +17,19 @@
   },
   "counts": {
     "launches": 500,
-    "recent100Fetched": 100,
-    "recent20Fetched": 35,
-    "historicalFetched": 2156,
-    "ethGetLogsTokenLaunched": 390,
+    "recent100Fetched": 0,
+    "recent20Fetched": 36,
+    "historicalFetched": 923,
+    "ethGetLogsTokenLaunched": 0,
     "receiptPairTokenEnrich": {
+      "ok": 32,
+      "fail": 8,
+      "attempted": 40
+    },
+    "stubMetadataHydrate": {
       "ok": 0,
       "fail": 0,
       "attempted": 0
-    },
-    "stubMetadataHydrate": {
-      "ok": 80,
-      "fail": 0,
-      "attempted": 80
     },
     "byQuoteClass": {
       "eth": 420,
@@ -40,12 +40,12 @@
     },
     "stockQuoted": 53,
     "usdgQuoted": 26,
-    "graduated": 320
+    "graduated": 188
   },
   "rpc": {
     "ok": true,
     "chainId": 4663,
-    "blockNumber": 55680267,
+    "blockNumber": 55688716,
     "factories": {
       "v1": "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
       "v2": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
@@ -61,9 +61,9 @@
   },
   "ethGetLogs": {
     "ok": true,
-    "count": 390,
-    "fromBlock": 55659145,
-    "toBlock": 55679145,
+    "count": 0,
+    "fromBlock": 55668666,
+    "toBlock": 55688666,
     "topicV2": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
     "topicRecent": "0xdb51ea9ad51ab453a65a4cb7e60c3cb378c9501bb002609f8f97778fb6c4235a",
     "factories": {
@@ -71,50 +71,17 @@
       "recent": "0xF4fC0CD27fC8EcF17E55eE4c3f7201897dF3eb75"
     },
     "counts": {
-      "v2": 390,
+      "v2": 0,
       "recent": 0
     },
     "softErrors": [
+      "v2: Too Many Requests",
       "recent: Too Many Requests"
     ],
-    "samples": [
-      {
-        "token": "0x5ebbc1e7e6abf2939202682eef865dde0e6916cf",
-        "pairToken": "0x86923f96303d656e4aa86d9d42d1e57ad2023fdc",
-        "deployer": "0xca11bde05977b3631167028862be2a173976ca11",
-        "tx": "0x0c148e26d94137ce84236218492c360b2dd88ab2443067265d96d4cfdb7f6073",
-        "style": "v2"
-      },
-      {
-        "token": "0xa42faf102df58b1d9a4a1b42d89f2f47dd966875",
-        "pairToken": "0x0000000000000000000000000000000000000000",
-        "deployer": "0x6588870c64dc362e34e55e89417dcb33042c1b8a",
-        "tx": "0x5815d9f5aefd635520ff2fa21536ee8495ddaf3c6b2c688d8a54da3872635cad",
-        "style": "v2"
-      },
-      {
-        "token": "0x78deccf0108137344786cb91abab5e78e453c617",
-        "pairToken": "0x0000000000000000000000000000000000000000",
-        "deployer": "0xf0cc14c08842bfb575473f95e3c08dc20ba147d5",
-        "tx": "0x24575b02e93f14f84459c215c063dab7c6300307f8c1322aa5a517be9d851bf4",
-        "style": "v2"
-      },
-      {
-        "token": "0x14f59527a93705bcc6a2d9e13b6782bb52021c71",
-        "pairToken": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
-        "deployer": "0x688659604d4c8cbbc5f9787ebeb77f87d0451868",
-        "tx": "0x72f42c08a24248ddacd90c1f71356ead1250f1eaf1a467577ccb2e17d4444e43",
-        "style": "v2"
-      },
-      {
-        "token": "0x2db0a7d6a5b25e06e15441ceea863e15e15d15bd",
-        "pairToken": "0x0000000000000000000000000000000000000000",
-        "deployer": "0xbd3b2771770e1fd6c5dc108193268e25cdcf5547",
-        "tx": "0x5f59466b9f4df8900c1e896498b16b6f84f67928d4713000d43b6bad6639e5e1",
-        "style": "v2"
-      }
-    ]
+    "samples": []
   },
-  "errors": [],
+  "errors": [
+    "recent100: HTTP 502 for https://www.ponsfamily.com/api/pons-launches?limit=100"
+  ],
   "disclaimer": "StockCurve is an independent community tool. Not affiliated with Robinhood, Pons Labs, or FOMO. Not financial advice."
 }
